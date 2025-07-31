@@ -1,4 +1,7 @@
 // Re-export all shared constants from ui-constants
+
+// Re-export agent constants from types
+export { TOOL_PRESETS } from "@ccflare/types";
 export {
 	API_LIMITS,
 	API_TIMEOUT,

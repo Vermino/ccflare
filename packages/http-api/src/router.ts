@@ -3,6 +3,7 @@ import {
 	createAccountAddHandler,
 	createAccountPauseHandler,
 	createAccountRemoveHandler,
+	createAccountRenameHandler,
 	createAccountResumeHandler,
 	createAccountsListHandler,
 	createAccountTierUpdateHandler,
@@ -10,8 +11,10 @@ import {
 import {
 	createAgentPreferenceUpdateHandler,
 	createAgentsListHandler,
+	createBulkAgentPreferenceUpdateHandler,
 	createWorkspacesListHandler,
 } from "./handlers/agents";
+import { createAgentUpdateHandler } from "./handlers/agents-update";
 import { createAnalyticsHandler } from "./handlers/analytics";
 import { createConfigHandlers } from "./handlers/config";
 import { createHealthHandler } from "./handlers/health";
@@ -25,6 +28,7 @@ import {
 	createRequestsDetailHandler,
 	createRequestsSummaryHandler,
 } from "./handlers/requests";
+import { createRequestsStreamHandler } from "./handlers/requests-stream";
 import { createStatsHandler, createStatsResetHandler } from "./handlers/stats";
 import type { APIContext } from "./types";
 import { errorResponse } from "./utils/http-error";
@@ -66,6 +70,7 @@ export class APIRouter {
 		const oauthCallbackHandler = createOAuthCallbackHandler(dbOps);
 		const agentsHandler = createAgentsListHandler(dbOps);
 		const workspacesHandler = createWorkspacesListHandler();
+		const requestsStreamHandler = createRequestsStreamHandler();
 
 		// Register routes
 		this.handlers.set("GET:/health", () => healthHandler());
@@ -97,6 +102,9 @@ export class APIRouter {
 				}) || 100;
 			return requestsDetailHandler(limit);
 		});
+		this.handlers.set("GET:/api/requests/stream", () =>
+			requestsStreamHandler(),
+		);
 		this.handlers.set("GET:/api/config", () => configHandlers.getConfig());
 		this.handlers.set("GET:/api/config/strategy", () =>
 			configHandlers.getStrategy(),
@@ -107,12 +115,24 @@ export class APIRouter {
 		this.handlers.set("GET:/api/strategies", () =>
 			configHandlers.getStrategies(),
 		);
+		this.handlers.set("GET:/api/config/model", () =>
+			configHandlers.getDefaultAgentModel(),
+		);
+		this.handlers.set("POST:/api/config/model", (req) =>
+			configHandlers.setDefaultAgentModel(req),
+		);
 		this.handlers.set("GET:/api/logs/stream", () => logsStreamHandler());
 		this.handlers.set("GET:/api/logs/history", () => logsHistoryHandler());
 		this.handlers.set("GET:/api/analytics", (_req, url) => {
 			return analyticsHandler(url.searchParams);
 		});
 		this.handlers.set("GET:/api/agents", () => agentsHandler());
+		this.handlers.set("POST:/api/agents/bulk-preference", (req) => {
+			const bulkHandler = createBulkAgentPreferenceUpdateHandler(
+				this.context.dbOps,
+			);
+			return bulkHandler(req);
+		});
 		this.handlers.set("GET:/api/workspaces", () => workspacesHandler());
 	}
 
@@ -177,6 +197,15 @@ export class APIRouter {
 				);
 			}
 
+			// Account rename
+			if (path.endsWith("/rename") && method === "POST") {
+				const renameHandler = createAccountRenameHandler(this.context.dbOps);
+				return await this.wrapHandler((req) => renameHandler(req, accountId))(
+					req,
+					url,
+				);
+			}
+
 			// Account removal
 			if (parts.length === 4 && method === "DELETE") {
 				const removeHandler = createAccountRemoveHandler(this.context.dbOps);
@@ -198,6 +227,15 @@ export class APIRouter {
 					this.context.dbOps,
 				);
 				return await this.wrapHandler((req) => preferenceHandler(req, agentId))(
+					req,
+					url,
+				);
+			}
+
+			// Agent update (PATCH /api/agents/:id)
+			if (parts.length === 4 && method === "PATCH") {
+				const updateHandler = createAgentUpdateHandler(this.context.dbOps);
+				return await this.wrapHandler((req) => updateHandler(req, agentId))(
 					req,
 					url,
 				);

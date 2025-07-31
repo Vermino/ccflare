@@ -3,14 +3,20 @@ declare var self: Worker;
 import { BUFFER_SIZES, estimateCostUSD, TIME_CONSTANTS } from "@ccflare/core";
 import { AsyncDbWriter, DatabaseOperations } from "@ccflare/database";
 import { Logger } from "@ccflare/logger";
-import { NO_ACCOUNT_ID } from "@ccflare/types";
+import {
+	NO_ACCOUNT_ID,
+	type RequestPayload,
+	type RequestResponse,
+} from "@ccflare/types";
 import { formatCost } from "@ccflare/ui-common";
 import { get_encoding } from "@dqbd/tiktoken";
 import { combineChunks } from "./stream-tee";
 import type {
 	ChunkMessage,
 	EndMessage,
+	PayloadMessage,
 	StartMessage,
+	SummaryMessage,
 	WorkerMessage,
 } from "./worker-messages";
 
@@ -107,6 +113,41 @@ function parseSSELine(line: string): { event?: string; data?: string } {
 		return { data: line.slice(6).trim() };
 	}
 	return {};
+}
+
+// Extract usage data from non-stream JSON response bodies
+function extractUsageFromJson(
+	json: {
+		model?: string;
+		usage?: {
+			input_tokens?: number;
+			cache_read_input_tokens?: number;
+			cache_creation_input_tokens?: number;
+			output_tokens?: number;
+		};
+	},
+	state: RequestState,
+): void {
+	if (!json) return;
+
+	const usageObj = json.usage;
+	if (!usageObj) return;
+
+	state.usage.model = json.model ?? state.usage.model;
+
+	state.usage.inputTokens = usageObj.input_tokens ?? 0;
+	state.usage.cacheReadInputTokens = usageObj.cache_read_input_tokens ?? 0;
+	state.usage.cacheCreationInputTokens =
+		usageObj.cache_creation_input_tokens ?? 0;
+	state.usage.outputTokens = usageObj.output_tokens ?? 0;
+
+	// Calculate total tokens
+	const prompt =
+		(state.usage.inputTokens ?? 0) +
+		(state.usage.cacheReadInputTokens ?? 0) +
+		(state.usage.cacheCreationInputTokens ?? 0);
+	const completion = state.usage.outputTokens ?? 0;
+	state.usage.totalTokens = prompt + completion;
 }
 
 function extractUsageFromData(data: string, state: RequestState): void {
@@ -299,6 +340,17 @@ async function handleEnd(msg: EndMessage): Promise<void> {
 		return;
 	}
 
+	// For non-stream responses, extract usage data from response body
+	if (!state.usage.model && msg.responseBody) {
+		try {
+			const decoded = Buffer.from(msg.responseBody, "base64").toString("utf-8");
+			const json = JSON.parse(decoded);
+			extractUsageFromJson(json, state);
+		} catch {
+			// Ignore parse errors
+		}
+	}
+
 	// Calculate total tokens and cost
 	if (state.usage.model) {
 		// Use provider's authoritative count if available, fallback to computed
@@ -420,6 +472,65 @@ async function handleEnd(msg: EndMessage): Promise<void> {
 				`Tokens: ${state.usage.totalTokens || 0}, Cost: ${formatCost(state.usage.costUsd)}`,
 		);
 	}
+
+	// Post summary to main thread for real-time updates
+	const summary: RequestResponse = {
+		id: startMessage.requestId,
+		timestamp: new Date(startMessage.timestamp).toISOString(),
+		method: startMessage.method,
+		path: startMessage.path,
+		accountUsed: startMessage.accountId,
+		statusCode: startMessage.responseStatus,
+		success: msg.success,
+		errorMessage: msg.error || null,
+		responseTimeMs: responseTime,
+		failoverAttempts: startMessage.failoverAttempts,
+		model: state.usage.model,
+		promptTokens: state.usage.inputTokens,
+		completionTokens: state.usage.outputTokens,
+		totalTokens: state.usage.totalTokens,
+		inputTokens: state.usage.inputTokens,
+		cacheReadInputTokens: state.usage.cacheReadInputTokens,
+		cacheCreationInputTokens: state.usage.cacheCreationInputTokens,
+		outputTokens: state.usage.outputTokens,
+		costUsd: state.usage.costUsd,
+		agentUsed: state.agentUsed,
+		tokensPerSecond: state.usage.tokensPerSecond,
+	};
+
+	self.postMessage({
+		type: "summary",
+		summary,
+	} satisfies SummaryMessage);
+
+	// Post full payload to main thread
+	const fullPayload: RequestPayload = {
+		id: startMessage.requestId,
+		request: {
+			headers: startMessage.requestHeaders,
+			body: startMessage.requestBody,
+		},
+		response: {
+			status: startMessage.responseStatus,
+			headers: startMessage.responseHeaders,
+			body: responseBody,
+		},
+		error: msg.error,
+		meta: {
+			accountId: startMessage.accountId || NO_ACCOUNT_ID,
+			timestamp: startMessage.timestamp,
+			success: msg.success,
+			retry: startMessage.retryAttempt,
+			path: startMessage.path,
+			method: startMessage.method,
+			agentUsed: state.agentUsed,
+		},
+	};
+
+	self.postMessage({
+		type: "payload",
+		payload: fullPayload,
+	} satisfies PayloadMessage);
 
 	// Clean up
 	requests.delete(msg.requestId);
