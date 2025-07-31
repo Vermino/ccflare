@@ -1,0 +1,1761 @@
+Index: packages/load-balancer/src/strategies/round-robin.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/round-robin.ts b/packages/load-balancer/src/strategies/round-robin.ts
+new file mode 100644
+--- /dev/null	(date 1753871270729)
++++ b/packages/load-balancer/src/strategies/round-robin.ts	(date 1753871270729)
+@@ -0,0 +1,47 @@
++import type {
++	Account,
++	LoadBalancingStrategy,
++	RequestMeta,
++	StrategyStore,
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
++
++/**
++ * Round-robin strategy that cycles through accounts evenly
++ * Maintains a global counter to ensure fair distribution
++ */
++export class RoundRobinStrategy implements LoadBalancingStrategy {
++	private store: StrategyStore | null = null;
++	private log = new Logger("RoundRobinStrategy");
++	private lastIndex = 0;
++
++	initialize(store: StrategyStore): void {
++		this.store = store;
++	}
++
++	select(accounts: Account[], _meta: RequestMeta): Account[] {
++		const now = Date.now();
++		const available = accounts.filter((a) => isAccountAvailable(a, now));
++
++		if (available.length === 0) {
++			this.log.warn("No available accounts for round-robin selection");
++			return [];
++		}
++
++		// Sort accounts by ID for consistent ordering
++		available.sort((a, b) => a.id.localeCompare(b.id));
++
++		// Select next account in round-robin fashion
++		const selectedAccount = available[this.lastIndex % available.length];
++		this.lastIndex = (this.lastIndex + 1) % available.length;
++
++		this.log.info(
++			`Round-robin selected account ${selectedAccount.name} (${this.lastIndex}/${available.length})`,
++		);
++
++		// Return selected account first, then others as fallback
++		const others = available.filter((a) => a.id !== selectedAccount.id);
++		return [selectedAccount, ...others];
++	}
++}
+Index: packages/load-balancer/src/strategies/session.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/session.ts b/packages/load-balancer/src/strategies/session.ts
+new file mode 100644
+--- /dev/null	(date 1753871270751)
++++ b/packages/load-balancer/src/strategies/session.ts	(date 1753871270751)
+@@ -0,0 +1,93 @@
++import type {
++	Account,
++	LoadBalancingStrategy,
++	RequestMeta,
++	StrategyStore,
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
++
++export class SessionStrategy implements LoadBalancingStrategy {
++	private sessionDurationMs: number;
++	private store: StrategyStore | null = null;
++	private log = new Logger("SessionStrategy");
++
++	constructor(sessionDurationMs: number = 5 * 60 * 60 * 1000) {
++		this.sessionDurationMs = sessionDurationMs;
++	}
++
++	initialize(store: StrategyStore): void {
++		this.store = store;
++	}
++
++	private resetSessionIfExpired(account: Account): void {
++		const now = Date.now();
++
++		if (
++			!account.session_start ||
++			now - account.session_start >= this.sessionDurationMs
++		) {
++			// Reset session
++			if (this.store) {
++				const wasExpired = account.session_start !== null;
++				this.log.info(
++					wasExpired
++						? `Session expired for account ${account.name}, starting new session`
++						: `Starting new session for account ${account.name}`,
++				);
++				this.store.resetAccountSession(account.id, now);
++
++				// Update the account object to reflect changes
++				account.session_start = now;
++				account.session_request_count = 0;
++			}
++		}
++	}
++
++	select(accounts: Account[], _meta: RequestMeta): Account[] {
++		const now = Date.now();
++
++		// Find account with active session (most recent session_start within window)
++		let activeAccount: Account | null = null;
++		let mostRecentSessionStart = 0;
++
++		for (const account of accounts) {
++			if (
++				account.session_start &&
++				now - account.session_start < this.sessionDurationMs &&
++				account.session_start > mostRecentSessionStart
++			) {
++				activeAccount = account;
++				mostRecentSessionStart = account.session_start;
++			}
++		}
++
++		// If we have an active account and it's available, use it exclusively
++		if (activeAccount && isAccountAvailable(activeAccount, now)) {
++			// Reset session if expired (shouldn't happen but just in case)
++			this.resetSessionIfExpired(activeAccount);
++			this.log.info(
++				`Continuing session for account ${activeAccount.name} (${activeAccount.session_request_count} requests in session)`,
++			);
++			// Return active account first, then others as fallback
++			const others = accounts.filter(
++				(a) => a.id !== activeAccount.id && isAccountAvailable(a, now),
++			);
++			return [activeAccount, ...others];
++		}
++
++		// No active session or active account is rate limited
++		// Filter available accounts
++		const available = accounts.filter((a) => isAccountAvailable(a, now));
++
++		if (available.length === 0) return [];
++
++		// Pick the first available account and start a new session with it
++		const chosenAccount = available[0];
++		this.resetSessionIfExpired(chosenAccount);
++
++		// Return chosen account first, then others as fallback
++		const others = available.filter((a) => a.id !== chosenAccount.id);
++		return [chosenAccount, ...others];
++	}
++}
+Index: packages/cli-commands/src/commands/strategy.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/cli-commands/src/commands/strategy.ts b/packages/cli-commands/src/commands/strategy.ts
+new file mode 100644
+--- /dev/null	(date 1753871270754)
++++ b/packages/cli-commands/src/commands/strategy.ts	(date 1753871270754)
+@@ -0,0 +1,106 @@
++import { Config } from "@ccflare/config";
++import { getStrategyDescription } from "@ccflare/load-balancer";
++import { StrategyName } from "@ccflare/types";
++
++/**
++ * Handle strategy-related CLI commands
++ */
++export function handleStrategyCommand(args: string[]): void {
++	const subCommand = args[0];
++
++	switch (subCommand) {
++		case "list":
++			listStrategies();
++			break;
++		case "set":
++			setStrategy(args[1]);
++			break;
++		case "get":
++		case "current":
++			getCurrentStrategy();
++			break;
++		default:
++			showStrategyHelp();
++			break;
++	}
++}
++
++function listStrategies(): void {
++	console.log("Available load balancing strategies:");
++	console.log("");
++
++	const strategies = Object.values(StrategyName);
++	const config = new Config();
++	const currentStrategy = config.getStrategy();
++
++	for (const strategy of strategies) {
++		const isCurrent = strategy === currentStrategy;
++		const prefix = isCurrent ? "→" : " ";
++		const description = getStrategyDescription(strategy as StrategyName);
++
++		console.log(`${prefix} ${strategy.padEnd(15)} ${description}`);
++	}
++
++	console.log("");
++	console.log(`Current strategy: ${currentStrategy}`);
++}
++
++function setStrategy(strategyName: string): void {
++	if (!strategyName) {
++		console.error("Strategy name is required");
++		console.log("Use 'strategy list' to see available strategies");
++		process.exit(1);
++	}
++
++	const strategies = Object.values(StrategyName);
++	if (!strategies.includes(strategyName as StrategyName)) {
++		console.error(`Invalid strategy: ${strategyName}`);
++		console.log("Available strategies:");
++		for (const strategy of strategies) {
++			console.log(`  ${strategy}`);
++		}
++		process.exit(1);
++	}
++
++	const config = new Config();
++	config.set("lb_strategy", strategyName);
++
++	console.log(`✅ Load balancing strategy set to: ${strategyName}`);
++	console.log(`   ${getStrategyDescription(strategyName as StrategyName)}`);
++}
++
++function getCurrentStrategy(): void {
++	const config = new Config();
++	const currentStrategy = config.getStrategy();
++	const description = getStrategyDescription(currentStrategy);
++
++	console.log(`Current strategy: ${currentStrategy}`);
++	console.log(`Description: ${description}`);
++}
++
++function showStrategyHelp(): void {
++	console.log(`
++Strategy Management Commands:
++
++  strategy list
++    List all available load balancing strategies
++
++  strategy set <strategy-name>
++    Set the current load balancing strategy
++
++  strategy get
++    Show the current load balancing strategy
++
++Available strategies:
++  session      - Maintains 5-hour sessions with a single account
++  round-robin  - Cycles through accounts evenly  
++  least-used   - Prioritizes accounts with lowest usage
++  weighted     - Uses account weights based on plan type
++  model-aware  - Routes based on model compatibility
++
++Examples:
++  ccflare-cli strategy list
++  ccflare-cli strategy set weighted
++  ccflare-cli strategy get
++`);
++}
+Index: packages/core/src/oauth-manager.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/core/src/oauth-manager.ts b/packages/core/src/oauth-manager.ts
+new file mode 100644
+--- /dev/null	(date 1753871270758)
++++ b/packages/core/src/oauth-manager.ts	(date 1753871270758)
+@@ -0,0 +1,186 @@
++import { Logger } from "@ccflare/logger";
++import type { StrategyStore } from "./strategy-store";
++import type { Account } from "./types";
++
++// Provider interface for OAuth operations
++interface OAuthProvider {
++	refreshToken(
++		account: Account,
++		clientId: string,
++	): Promise<{
++		accessToken: string;
++		expiresAt: number;
++		refreshToken?: string;
++	}>;
++}
++
++/**
++ * OAuth session manager that handles token refresh and session lifecycle
++ */
++export class OAuthManager {
++	private log = new Logger("OAuthManager");
++	private refreshInFlight = new Map<string, Promise<void>>();
++	private refreshBuffer: number; // Buffer time before expiry to trigger refresh
++
++	constructor(refreshBuffer: number = 30 * 60 * 1000) {
++		// 30 minutes default
++		this.refreshBuffer = refreshBuffer;
++	}
++
++	/**
++	 * Check if an account's OAuth token needs refresh
++	 */
++	needsRefresh(account: Account, now: number = Date.now()): boolean {
++		if (!account.expires_at) return true;
++		return account.expires_at - now <= this.refreshBuffer;
++	}
++
++	/**
++	 * Check if an account's OAuth token is expired
++	 */
++	isExpired(account: Account, now: number = Date.now()): boolean {
++		if (!account.expires_at) return true;
++		return account.expires_at <= now;
++	}
++
++	/**
++	 * Schedule token refresh for accounts that need it
++	 * This can be called periodically to proactively refresh tokens
++	 */
++	async scheduleRefresh(
++		accounts: Account[],
++		store: StrategyStore,
++		provider: OAuthProvider,
++		clientId: string,
++	): Promise<void> {
++		const now = Date.now();
++		const needsRefresh = accounts.filter(
++			(account) =>
++				this.needsRefresh(account, now) &&
++				!this.refreshInFlight.has(account.id),
++		);
++
++		if (needsRefresh.length === 0) return;
++
++		this.log.info(
++			`Scheduling OAuth refresh for ${needsRefresh.length} accounts: ${needsRefresh.map((a) => a.name).join(", ")}`,
++		);
++
++		// Start refresh for all accounts that need it
++		const refreshPromises = needsRefresh.map((account) =>
++			this.refreshAccount(account, store, provider, clientId),
++		);
++
++		// Wait for all refreshes to complete (or fail)
++		await Promise.allSettled(refreshPromises);
++	}
++
++	/**
++	 * Refresh OAuth token for a specific account
++	 * Includes stampede prevention
++	 */
++	async refreshAccount(
++		account: Account,
++		store: StrategyStore,
++		provider: OAuthProvider,
++		clientId: string,
++	): Promise<void> {
++		// Check if refresh is already in flight
++		if (this.refreshInFlight.has(account.id)) {
++			this.log.info(`Waiting for existing refresh for account ${account.name}`);
++			await this.refreshInFlight.get(account.id);
++			return;
++		}
++
++		// Start refresh
++		const refreshPromise = this._doRefresh(account, store, provider, clientId);
++		this.refreshInFlight.set(account.id, refreshPromise);
++
++		try {
++			await refreshPromise;
++		} finally {
++			this.refreshInFlight.delete(account.id);
++		}
++	}
++
++	private async _doRefresh(
++		account: Account,
++		store: StrategyStore,
++		provider: OAuthProvider,
++		clientId: string,
++	): Promise<void> {
++		try {
++			this.log.info(`Refreshing OAuth token for account ${account.name}`);
++
++			const result = await provider.refreshToken(account, clientId);
++
++			// Update account with new token info
++			account.access_token = result.accessToken;
++			account.expires_at = result.expiresAt;
++
++			// Update refresh token if provided
++			if (result.refreshToken) {
++				account.refresh_token = result.refreshToken;
++			}
++
++			// Persist changes to database if store supports it
++			if (store.updateAccount) {
++				store.updateAccount(account);
++			}
++
++			this.log.info(
++				`OAuth token refreshed for account ${account.name}, expires at ${new Date(result.expiresAt).toISOString()}`,
++			);
++		} catch (error) {
++			this.log.error(
++				`Failed to refresh OAuth token for account ${account.name}: ${error}`,
++			);
++
++			// Mark account as having authentication issues
++			// The account will be filtered out by isAccountAvailable until token is fixed
++			account.expires_at = 0; // Mark as expired
++
++			throw error;
++		}
++	}
++
++	/**
++	 * Get OAuth session status for an account
++	 */
++	getSessionStatus(
++		account: Account,
++		now: number = Date.now(),
++	): {
++		isValid: boolean;
++		needsRefresh: boolean;
++		expiresIn: number;
++		status: "valid" | "needs_refresh" | "expired" | "missing";
++	} {
++		if (!account.expires_at) {
++			return {
++				isValid: false,
++				needsRefresh: true,
++				expiresIn: 0,
++				status: "missing",
++			};
++		}
++
++		const expiresIn = account.expires_at - now;
++		const isExpired = expiresIn <= 0;
++		const needsRefresh = expiresIn <= this.refreshBuffer;
++
++		return {
++			isValid: !isExpired,
++			needsRefresh,
++			expiresIn,
++			status: isExpired ? "expired" : needsRefresh ? "needs_refresh" : "valid",
++		};
++	}
++}
++
++// Extend StrategyStore interface to support OAuth updates
++declare module "./strategy-store" {
++	interface StrategyStore {
++		updateAccount?(account: Account): void;
++	}
++}
+Index: packages/load-balancer/src/strategies/least-used.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/least-used.ts b/packages/load-balancer/src/strategies/least-used.ts
+new file mode 100644
+--- /dev/null	(date 1753871270718)
++++ b/packages/load-balancer/src/strategies/least-used.ts	(date 1753871270718)
+@@ -0,0 +1,69 @@
++import type {
++	Account,
++	LoadBalancingStrategy,
++	RequestMeta,
++	StrategyStore,
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
++
++/**
++ * Least-used strategy that prioritizes accounts with lowest usage
++ * Uses session_request_count within current 5-hour window
++ */
++export class LeastUsedStrategy implements LoadBalancingStrategy {
++	private store: StrategyStore | null = null;
++	private log = new Logger("LeastUsedStrategy");
++	private sessionDurationMs: number;
++
++	constructor(sessionDurationMs: number = 5 * 60 * 60 * 1000) {
++		this.sessionDurationMs = sessionDurationMs;
++	}
++
++	initialize(store: StrategyStore): void {
++		this.store = store;
++	}
++
++	private getSessionUsage(account: Account, now: number): number {
++		// If no session started or session expired, usage is 0
++		if (
++			!account.session_start ||
++			now - account.session_start >= this.sessionDurationMs
++		) {
++			return 0;
++		}
++		return account.session_request_count || 0;
++	}
++
++	select(accounts: Account[], _meta: RequestMeta): Account[] {
++		const now = Date.now();
++		const available = accounts.filter((a) => isAccountAvailable(a, now));
++
++		if (available.length === 0) {
++			this.log.warn("No available accounts for least-used selection");
++			return [];
++		}
++
++		// Sort by session usage (least used first), then by total requests as tiebreaker
++		available.sort((a, b) => {
++			const aUsage = this.getSessionUsage(a, now);
++			const bUsage = this.getSessionUsage(b, now);
++
++			if (aUsage !== bUsage) {
++				return aUsage - bUsage;
++			}
++
++			// Tiebreaker: use total requests (prefer account with fewer total requests)
++			return a.total_requests - b.total_requests;
++		});
++
++		const selectedAccount = available[0];
++		const sessionUsage = this.getSessionUsage(selectedAccount, now);
++
++		this.log.info(
++			`Least-used selected account ${selectedAccount.name} (session usage: ${sessionUsage}, total: ${selectedAccount.total_requests})`,
++		);
++
++		return available;
++	}
++}
+Index: packages/load-balancer/src/strategies/model-aware.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/model-aware.ts b/packages/load-balancer/src/strategies/model-aware.ts
+new file mode 100644
+--- /dev/null	(date 1753871270721)
++++ b/packages/load-balancer/src/strategies/model-aware.ts	(date 1753871270721)
+@@ -0,0 +1,101 @@
++import type {
++	Account,
++	LoadBalancingStrategy,
++	RequestMeta,
++	StrategyStore,
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
++
++/**
++ * Model-aware strategy that routes requests based on Claude model compatibility
++ * with account plans (Pro vs Max)
++ */
++export class ModelAwareStrategy implements LoadBalancingStrategy {
++	private store: StrategyStore | null = null;
++	private log = new Logger("ModelAwareStrategy");
++
++	initialize(store: StrategyStore): void {
++		this.store = store;
++	}
++
++	private getRequiredTier(model?: string): number {
++		if (!model) return 1; // Default to lowest tier for unknown models
++
++		const normalizedModel = model.toLowerCase();
++
++		// Claude 3.5 Sonnet and Haiku are available on all tiers
++		if (
++			normalizedModel.includes("claude-3-5-sonnet") ||
++			normalizedModel.includes("claude-3-haiku")
++		) {
++			return 1;
++		}
++
++		// Claude 3 Opus typically requires higher tiers
++		if (normalizedModel.includes("claude-3-opus")) {
++			return 5; // Require at least Pro
++		}
++
++		// Future premium models might require Max tier
++		if (
++			normalizedModel.includes("claude-4") ||
++			normalizedModel.includes("premium")
++		) {
++			return 20; // Require Max tier
++		}
++
++		return 1; // Default to lowest tier
++	}
++
++	select(accounts: Account[], meta: RequestMeta): Account[] {
++		const now = Date.now();
++		const available = accounts.filter((a) => isAccountAvailable(a, now));
++
++		if (available.length === 0) {
++			this.log.warn("No available accounts for model-aware selection");
++			return [];
++		}
++
++		// Extract model from request metadata
++		const model = meta.model;
++		const requiredTier = this.getRequiredTier(model);
++
++		// Filter accounts that can handle the required model
++		const compatible = available.filter(
++			(account) => (account.account_tier || 1) >= requiredTier,
++		);
++
++		if (compatible.length === 0) {
++			this.log.warn(
++				`No accounts compatible with model ${model} (tier ${requiredTier} required)`,
++			);
++			// Fallback to all available accounts
++			return available;
++		}
++
++		// Sort compatible accounts by tier (higher tier first) and then by usage
++		compatible.sort((a, b) => {
++			const aTier = a.account_tier || 1;
++			const bTier = b.account_tier || 1;
++
++			if (aTier !== bTier) {
++				return bTier - aTier; // Higher tier first
++			}
++
++			// Tiebreaker: prefer accounts with lower session usage
++			const aUsage = a.session_request_count || 0;
++			const bUsage = b.session_request_count || 0;
++			return aUsage - bUsage;
++		});
++
++		const selectedAccount = compatible[0];
++		this.log.info(
++			`Model-aware selected account ${selectedAccount.name} for model ${model} (tier: ${selectedAccount.account_tier})`,
++		);
++
++		// Return compatible accounts first, then others as fallback
++		const others = available.filter((a) => a.id !== selectedAccount.id);
++		return [selectedAccount, ...others];
++	}
++}
+Index: .claude/settings.local.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.claude/settings.local.json b/.claude/settings.local.json
+new file mode 100644
+--- /dev/null	(date 1753871270726)
++++ b/.claude/settings.local.json	(date 1753871270726)
+@@ -0,0 +1,10 @@
++{
++  "permissions": {
++    "allow": [
++      "Bash(git checkout:*)",
++      "Bash(bun run:*)",
++      "Bash(timeout:*)"
++    ],
++    "deny": []
++  }
++}
+\ No newline at end of file
+Index: packages/core/src/index.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>// Re-export only used items from each module\r\nexport {\r\n\tBUFFER_SIZES,\r\n\tCACHE,\r\n\tHTTP_STATUS,\r\n\tLIMITS,\r\n\tNETWORK,\r\n\tTIME_CONSTANTS,\r\n} from \"./constants\";\r\n\r\nexport {\r\n\tlogError,\r\n\tOAuthError,\r\n\tProviderError,\r\n\tRateLimitError,\r\n\tServiceUnavailableError,\r\n\tTokenRefreshError,\r\n\tValidationError,\r\n} from \"./errors\";\r\n\r\nexport * from \"./lifecycle\";\r\n\r\nexport {\r\n\testimateCostUSD,\r\n\tsetPricingLogger,\r\n\ttype TokenBreakdown,\r\n} from \"./pricing\";\r\n\r\nexport * from \"./strategy\";\r\n\r\nexport {\r\n\tpatterns,\r\n\tsanitizers,\r\n\tvalidateNumber,\r\n\tvalidateString,\r\n} from \"./validation\";\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/core/src/index.ts b/packages/core/src/index.ts
+--- a/packages/core/src/index.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/core/src/index.ts	(date 1753871279757)
+@@ -1,36 +1,5 @@
+-// Re-export only used items from each module
+-export {
+-	BUFFER_SIZES,
+-	CACHE,
+-	HTTP_STATUS,
+-	LIMITS,
+-	NETWORK,
+-	TIME_CONSTANTS,
+-} from "./constants";
+-
+-export {
+-	logError,
+-	OAuthError,
+-	ProviderError,
+-	RateLimitError,
+-	ServiceUnavailableError,
+-	TokenRefreshError,
+-	ValidationError,
+-} from "./errors";
+-
+ export * from "./lifecycle";
+-
+-export {
+-	estimateCostUSD,
+-	setPricingLogger,
+-	type TokenBreakdown,
+-} from "./pricing";
+-
++export * from "./pricing";
+ export * from "./strategy";
+-
+-export {
+-	patterns,
+-	sanitizers,
+-	validateNumber,
+-	validateString,
+-} from "./validation";
++export * from "./strategy-store";
++export * from "./types";
+Index: packages/load-balancer/src/strategies/weighted.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/weighted.ts b/packages/load-balancer/src/strategies/weighted.ts
+new file mode 100644
+--- /dev/null	(date 1753871270715)
++++ b/packages/load-balancer/src/strategies/weighted.ts	(date 1753871270715)
+@@ -0,0 +1,73 @@
++import type {
++	Account,
++	LoadBalancingStrategy,
++	RequestMeta,
++	StrategyStore,
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
++
++/**
++ * Weighted strategy that uses account tier to determine selection probability
++ * Higher tier accounts (Pro = 5x, Max = 20x) get more requests
++ */
++export class WeightedStrategy implements LoadBalancingStrategy {
++	private store: StrategyStore | null = null;
++	private log = new Logger("WeightedStrategy");
++
++	initialize(store: StrategyStore): void {
++		this.store = store;
++	}
++
++	private getAccountWeight(account: Account): number {
++		// Weight based on account tier: 1 (free), 5 (pro), 20 (max)
++		return account.account_tier || 1;
++	}
++
++	select(accounts: Account[], _meta: RequestMeta): Account[] {
++		const now = Date.now();
++		const available = accounts.filter((a) => isAccountAvailable(a, now));
++
++		if (available.length === 0) {
++			this.log.warn("No available accounts for weighted selection");
++			return [];
++		}
++
++		// Calculate total weight
++		const totalWeight = available.reduce(
++			(sum, account) => sum + this.getAccountWeight(account),
++			0,
++		);
++
++		// Generate random number between 0 and totalWeight
++		const randomWeight = Math.random() * totalWeight;
++		let currentWeight = 0;
++		let selectedAccount: Account | null = null;
++
++		// Find the account that corresponds to the random weight
++		for (const account of available) {
++			currentWeight += this.getAccountWeight(account);
++			if (randomWeight <= currentWeight) {
++				selectedAccount = account;
++				break;
++			}
++		}
++
++		// Fallback to first account if selection failed
++		if (!selectedAccount) {
++			selectedAccount = available[0];
++		}
++
++		const weight = this.getAccountWeight(selectedAccount);
++		this.log.info(
++			`Weighted selected account ${selectedAccount.name} (weight: ${weight}/${totalWeight})`,
++		);
++
++		// Return selected account first, then others sorted by weight (descending)
++		const others = available
++			.filter((a) => a.id !== selectedAccount?.id)
++			.sort((a, b) => this.getAccountWeight(b) - this.getAccountWeight(a));
++
++		return [selectedAccount, ...others];
++	}
++}
+Index: packages/cli-commands/src/commands/help.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>/**\r\n * Get help text for CLI commands\r\n */\r\nexport function getHelpText(): string {\r\n\treturn `\r\nUsage: ccflare-cli <command> [options]\r\n\r\nCommands:\r\n  add <name> [--mode <max|console>] [--tier <1|5|20>]\r\n    Add a new account using OAuth\r\n    --mode: Account type (optional, will prompt if not provided)\r\n    --tier: Account tier (1, 5, or 20) (optional, will prompt for Max accounts)\r\n\r\n  list\r\n    List all accounts with their details\r\n\r\n  remove <name> [--force]\r\n    Remove an account\r\n    --force: Skip confirmation prompt\r\n\r\n  pause <name>\r\n    Pause an account to exclude it from load balancing\r\n\r\n  resume <name>\r\n    Resume a paused account to include it in load balancing\r\n\r\n  reset-stats\r\n    Reset request counts for all accounts\r\n\r\n  clear-history\r\n    Clear request history\r\n\r\n  analyze\r\n    Analyze database performance and index usage\r\n\r\n  help\r\n    Show this help message\r\n\r\nExamples:\r\n  ccflare-cli add myaccount --mode max --tier 5\r\n  ccflare-cli list\r\n  ccflare-cli remove myaccount\r\n  ccflare-cli pause myaccount\r\n  ccflare-cli resume myaccount\r\n`;\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/cli-commands/src/commands/help.ts b/packages/cli-commands/src/commands/help.ts
+--- a/packages/cli-commands/src/commands/help.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/cli-commands/src/commands/help.ts	(date 1753871270776)
+@@ -33,6 +33,10 @@
+   analyze
+     Analyze database performance and index usage
+ 
++  strategy <subcommand>
++    Manage load balancing strategies
++    Subcommands: list, set <name>, get
++
+   help
+     Show this help message
+ 
+@@ -42,5 +46,7 @@
+   ccflare-cli remove myaccount
+   ccflare-cli pause myaccount
+   ccflare-cli resume myaccount
++  ccflare-cli strategy list
++  ccflare-cli strategy set weighted
+ `;
+ }
+Index: packages/load-balancer/src/strategies/index.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { isAccountAvailable, TIME_CONSTANTS } from \"@ccflare/core\";\r\nimport { Logger } from \"@ccflare/logger\";\r\nimport type {\r\n\tAccount,\r\n\tLoadBalancingStrategy,\r\n\tRequestMeta,\r\n\tStrategyStore,\r\n} from \"@ccflare/types\";\r\n\r\nexport class SessionStrategy implements LoadBalancingStrategy {\r\n\tprivate sessionDurationMs: number;\r\n\tprivate store: StrategyStore | null = null;\r\n\tprivate log = new Logger(\"SessionStrategy\");\r\n\r\n\tconstructor(\r\n\t\tsessionDurationMs: number = TIME_CONSTANTS.SESSION_DURATION_DEFAULT,\r\n\t) {\r\n\t\tthis.sessionDurationMs = sessionDurationMs;\r\n\t}\r\n\r\n\tinitialize(store: StrategyStore): void {\r\n\t\tthis.store = store;\r\n\t}\r\n\r\n\tprivate resetSessionIfExpired(account: Account): void {\r\n\t\tconst now = Date.now();\r\n\r\n\t\tif (\r\n\t\t\t!account.session_start ||\r\n\t\t\tnow - account.session_start >= this.sessionDurationMs\r\n\t\t) {\r\n\t\t\t// Reset session\r\n\t\t\tif (this.store) {\r\n\t\t\t\tconst wasExpired = account.session_start !== null;\r\n\t\t\t\tthis.log.info(\r\n\t\t\t\t\twasExpired\r\n\t\t\t\t\t\t? `Session expired for account ${account.name}, starting new session`\r\n\t\t\t\t\t\t: `Starting new session for account ${account.name}`,\r\n\t\t\t\t);\r\n\t\t\t\tthis.store.resetAccountSession(account.id, now);\r\n\r\n\t\t\t\t// Update the account object to reflect changes\r\n\t\t\t\taccount.session_start = now;\r\n\t\t\t\taccount.session_request_count = 0;\r\n\t\t\t}\r\n\t\t}\r\n\t}\r\n\r\n\tselect(accounts: Account[], _meta: RequestMeta): Account[] {\r\n\t\tconst now = Date.now();\r\n\r\n\t\t// Find account with active session (most recent session_start within window)\r\n\t\tlet activeAccount: Account | null = null;\r\n\t\tlet mostRecentSessionStart = 0;\r\n\r\n\t\tfor (const account of accounts) {\r\n\t\t\tif (\r\n\t\t\t\taccount.session_start &&\r\n\t\t\t\tnow - account.session_start < this.sessionDurationMs &&\r\n\t\t\t\taccount.session_start > mostRecentSessionStart\r\n\t\t\t) {\r\n\t\t\t\tactiveAccount = account;\r\n\t\t\t\tmostRecentSessionStart = account.session_start;\r\n\t\t\t}\r\n\t\t}\r\n\r\n\t\t// If we have an active account and it's available, use it exclusively\r\n\t\tif (activeAccount && isAccountAvailable(activeAccount, now)) {\r\n\t\t\t// Reset session if expired (shouldn't happen but just in case)\r\n\t\t\tthis.resetSessionIfExpired(activeAccount);\r\n\t\t\tthis.log.info(\r\n\t\t\t\t`Continuing session for account ${activeAccount.name} (${activeAccount.session_request_count} requests in session)`,\r\n\t\t\t);\r\n\t\t\t// Return active account first, then others as fallback\r\n\t\t\tconst others = accounts.filter(\r\n\t\t\t\t(a) => a.id !== activeAccount.id && isAccountAvailable(a, now),\r\n\t\t\t);\r\n\t\t\treturn [activeAccount, ...others];\r\n\t\t}\r\n\r\n\t\t// No active session or active account is rate limited\r\n\t\t// Filter available accounts\r\n\t\tconst available = accounts.filter((a) => isAccountAvailable(a, now));\r\n\r\n\t\tif (available.length === 0) return [];\r\n\r\n\t\t// Pick the first available account and start a new session with it\r\n\t\tconst chosenAccount = available[0];\r\n\t\tthis.resetSessionIfExpired(chosenAccount);\r\n\r\n\t\t// Return chosen account first, then others as fallback\r\n\t\tconst others = available.filter((a) => a.id !== chosenAccount.id);\r\n\t\treturn [chosenAccount, ...others];\r\n\t}\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/index.ts b/packages/load-balancer/src/strategies/index.ts
+--- a/packages/load-balancer/src/strategies/index.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/load-balancer/src/strategies/index.ts	(date 1753871270961)
+@@ -1,20 +1,18 @@
+-import { isAccountAvailable, TIME_CONSTANTS } from "@ccflare/core";
+-import { Logger } from "@ccflare/logger";
+ import type {
+ 	Account,
+ 	LoadBalancingStrategy,
+ 	RequestMeta,
+ 	StrategyStore,
+-} from "@ccflare/types";
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
+ 
+ export class SessionStrategy implements LoadBalancingStrategy {
+ 	private sessionDurationMs: number;
+ 	private store: StrategyStore | null = null;
+ 	private log = new Logger("SessionStrategy");
+ 
+-	constructor(
+-		sessionDurationMs: number = TIME_CONSTANTS.SESSION_DURATION_DEFAULT,
+-	) {
++	constructor(sessionDurationMs: number = 5 * 60 * 60 * 1000) {
+ 		this.sessionDurationMs = sessionDurationMs;
+ 	}
+ 
+Index: packages/load-balancer/src/index.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>export { SessionStrategy } from \"./strategies\";\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/index.ts b/packages/load-balancer/src/index.ts
+--- a/packages/load-balancer/src/index.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/load-balancer/src/index.ts	(date 1753871276278)
+@@ -1,1 +1,2 @@
+-export { SessionStrategy } from "./strategies";
++export * from "./strategies";
++export { createStrategy, getStrategyDescription } from "./strategy-factory";
+Index: apps/server/src/server.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { dirname } from \"node:path\";\r\nimport { Config, type RuntimeConfig } from \"@ccflare/config\";\r\nimport {\r\n\tCACHE,\r\n\tDEFAULT_STRATEGY,\r\n\tHTTP_STATUS,\r\n\tNETWORK,\r\n\tregisterDisposable,\r\n\tsetPricingLogger,\r\n\tshutdown,\r\n\tTIME_CONSTANTS,\r\n} from \"@ccflare/core\";\r\nimport { container, SERVICE_KEYS } from \"@ccflare/core-di\";\r\n// Import React dashboard assets\r\nimport dashboardManifest from \"@ccflare/dashboard-web/dist/manifest.json\";\r\nimport { AsyncDbWriter, DatabaseFactory } from \"@ccflare/database\";\r\nimport { APIRouter } from \"@ccflare/http-api\";\r\nimport { SessionStrategy } from \"@ccflare/load-balancer\";\r\nimport { Logger } from \"@ccflare/logger\";\r\nimport { getProvider } from \"@ccflare/providers\";\r\nimport {\r\n\tgetUsageWorker,\r\n\thandleProxy,\r\n\ttype ProxyContext,\r\n\tterminateUsageWorker,\r\n} from \"@ccflare/proxy\";\r\nimport { serve } from \"bun\";\r\n\r\n// Helper function to resolve dashboard assets with fallback\r\nfunction resolveDashboardAsset(assetPath: string): string | null {\r\n\ttry {\r\n\t\t// Try resolving as a package first\r\n\t\treturn Bun.resolveSync(\r\n\t\t\t`@ccflare/dashboard-web/dist${assetPath}`,\r\n\t\t\tdirname(import.meta.path),\r\n\t\t);\r\n\t} catch {\r\n\t\t// Fallback to relative path within the repo (development / mono-repo usage)\r\n\t\ttry {\r\n\t\t\treturn Bun.resolveSync(\r\n\t\t\t\t`../../../packages/dashboard-web/dist${assetPath}`,\r\n\t\t\t\tdirname(import.meta.path),\r\n\t\t\t);\r\n\t\t} catch {\r\n\t\t\treturn null;\r\n\t\t}\r\n\t}\r\n}\r\n\r\n// Helper function to serve dashboard files with proper headers\r\nfunction serveDashboardFile(\r\n\tassetPath: string,\r\n\tcontentType?: string,\r\n\tcacheControl?: string,\r\n): Response {\r\n\tconst fullPath = resolveDashboardAsset(assetPath);\r\n\tif (!fullPath) {\r\n\t\treturn new Response(\"Not Found\", { status: HTTP_STATUS.NOT_FOUND });\r\n\t}\r\n\r\n\t// Auto-detect content type if not provided\r\n\tif (!contentType) {\r\n\t\tif (assetPath.endsWith(\".js\")) contentType = \"application/javascript\";\r\n\t\telse if (assetPath.endsWith(\".css\")) contentType = \"text/css\";\r\n\t\telse if (assetPath.endsWith(\".html\")) contentType = \"text/html\";\r\n\t\telse if (assetPath.endsWith(\".json\")) contentType = \"application/json\";\r\n\t\telse if (assetPath.endsWith(\".svg\")) contentType = \"image/svg+xml\";\r\n\t\telse contentType = \"text/plain\";\r\n\t}\r\n\r\n\treturn new Response(Bun.file(fullPath), {\r\n\t\theaders: {\r\n\t\t\t\"Content-Type\": contentType,\r\n\t\t\t\"Cache-Control\": cacheControl || CACHE.CACHE_CONTROL_NO_CACHE,\r\n\t\t},\r\n\t});\r\n}\r\n\r\n// Module-level server instance\r\nlet serverInstance: ReturnType<typeof serve> | null = null;\r\n\r\n// Export for programmatic use\r\nexport default function startServer(options?: {\r\n\tport?: number;\r\n\twithDashboard?: boolean;\r\n}) {\r\n\t// Return existing server if already running\r\n\tif (serverInstance) {\r\n\t\treturn {\r\n\t\t\tport: serverInstance.port,\r\n\t\t\tstop: () => {\r\n\t\t\t\tif (serverInstance) {\r\n\t\t\t\t\tserverInstance.stop();\r\n\t\t\t\t\tserverInstance = null;\r\n\t\t\t\t}\r\n\t\t\t},\r\n\t\t};\r\n\t}\r\n\r\n\tconst { port = NETWORK.DEFAULT_PORT, withDashboard = true } = options || {};\r\n\r\n\t// Initialize DI container\r\n\tcontainer.registerInstance(SERVICE_KEYS.Config, new Config());\r\n\tcontainer.registerInstance(SERVICE_KEYS.Logger, new Logger(\"Server\"));\r\n\r\n\t// Initialize components\r\n\tconst config = container.resolve<Config>(SERVICE_KEYS.Config);\r\n\tconst runtime = config.getRuntime();\r\n\t// Override port if provided\r\n\tif (port !== runtime.port) {\r\n\t\truntime.port = port;\r\n\t}\r\n\tDatabaseFactory.initialize(undefined, runtime);\r\n\tconst dbOps = DatabaseFactory.getInstance();\r\n\tconst db = dbOps.getDatabase();\r\n\tconst log = container.resolve<Logger>(SERVICE_KEYS.Logger);\r\n\tcontainer.registerInstance(SERVICE_KEYS.Database, dbOps);\r\n\r\n\t// Initialize async DB writer\r\n\tconst asyncWriter = new AsyncDbWriter();\r\n\tcontainer.registerInstance(SERVICE_KEYS.AsyncWriter, asyncWriter);\r\n\tregisterDisposable(asyncWriter);\r\n\r\n\t// Initialize pricing logger\r\n\tconst pricingLogger = new Logger(\"Pricing\");\r\n\tcontainer.registerInstance(SERVICE_KEYS.PricingLogger, pricingLogger);\r\n\tsetPricingLogger(pricingLogger);\r\n\r\n\tconst apiRouter = new APIRouter({ db, config, dbOps });\r\n\r\n\t// Initialize load balancing strategy (will be created after runtime config)\r\n\r\n\t// Get the provider\r\n\tconst provider = getProvider(\"anthropic\");\r\n\tif (!provider) {\r\n\t\tthrow new Error(\"Anthropic provider not available\");\r\n\t}\r\n\r\n\t// Create runtime config\r\n\tconst runtimeConfig: RuntimeConfig = {\r\n\t\tclientId: config.get(\r\n\t\t\t\"client_id\",\r\n\t\t\t\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\r\n\t\t) as string,\r\n\t\tretry: {\r\n\t\t\tattempts: config.get(\"retry_attempts\", 3) as number,\r\n\t\t\tdelayMs: config.get(\"retry_delay_ms\", 1000) as number,\r\n\t\t\tbackoff: config.get(\"retry_backoff\", 2) as number,\r\n\t\t},\r\n\t\tsessionDurationMs: config.get(\r\n\t\t\t\"session_duration_ms\",\r\n\t\t\tTIME_CONSTANTS.SESSION_DURATION_DEFAULT,\r\n\t\t) as number,\r\n\t\tport,\r\n\t};\r\n\r\n\t// Now create the strategy with runtime config\r\n\tconst strategy = new SessionStrategy(runtimeConfig.sessionDurationMs);\r\n\tstrategy.initialize(dbOps);\r\n\r\n\t// Proxy context\r\n\tconst proxyContext: ProxyContext = {\r\n\t\tstrategy,\r\n\t\tdbOps,\r\n\t\truntime: runtimeConfig,\r\n\t\tprovider,\r\n\t\trefreshInFlight: new Map(),\r\n\t\tasyncWriter,\r\n\t\tusageWorker: getUsageWorker(),\r\n\t};\r\n\r\n\t// Hot reload strategy configuration\r\n\tconfig.on(\"change\", (changeType, fieldName) => {\r\n\t\tif (fieldName === \"strategy\") {\r\n\t\t\tlog.info(`Strategy configuration changed: ${changeType}`);\r\n\t\t\tconst newStrategyName = config.getStrategy();\r\n\t\t\t// For now, only SessionStrategy is supported\r\n\t\t\tif (newStrategyName === \"session\") {\r\n\t\t\t\tconst strategy = new SessionStrategy(runtimeConfig.sessionDurationMs);\r\n\t\t\t\tstrategy.initialize(dbOps);\r\n\t\t\t\tproxyContext.strategy = strategy;\r\n\t\t\t}\r\n\t\t}\r\n\t});\r\n\r\n\t// Main server\r\n\tserverInstance = serve({\r\n\t\tport: runtime.port,\r\n\t\tidleTimeout: NETWORK.IDLE_TIMEOUT_MAX, // Max allowed by Bun\r\n\t\tasync fetch(req) {\r\n\t\t\tconst url = new URL(req.url);\r\n\r\n\t\t\t// Try API routes first\r\n\t\t\tconst apiResponse = await apiRouter.handleRequest(url, req);\r\n\t\t\tif (apiResponse) {\r\n\t\t\t\treturn apiResponse;\r\n\t\t\t}\r\n\r\n\t\t\t// Dashboard routes (only if enabled)\r\n\t\t\tif (withDashboard) {\r\n\t\t\t\tif (url.pathname === \"/\" || url.pathname === \"/dashboard\") {\r\n\t\t\t\t\treturn serveDashboardFile(\"/index.html\", \"text/html\");\r\n\t\t\t\t}\r\n\r\n\t\t\t\t// Serve dashboard static assets\r\n\t\t\t\tif ((dashboardManifest as Record<string, string>)[url.pathname]) {\r\n\t\t\t\t\treturn serveDashboardFile(\r\n\t\t\t\t\t\turl.pathname,\r\n\t\t\t\t\t\tundefined,\r\n\t\t\t\t\t\tCACHE.CACHE_CONTROL_STATIC,\r\n\t\t\t\t\t);\r\n\t\t\t\t}\r\n\t\t\t}\r\n\r\n\t\t\t// All other paths go to proxy\r\n\t\t\treturn handleProxy(req, url, proxyContext);\r\n\t\t},\r\n\t});\r\n\r\n\t// Log server startup\r\n\tconsole.log(`\r\n\uD83C\uDFAF ccflare Server v${process.env.npm_package_version || \"1.0.0\"}\r\n\uD83C\uDF10 Port: ${serverInstance.port}\r\n\uD83D\uDCCA Dashboard: ${withDashboard ? `http://localhost:${serverInstance.port}` : \"disabled\"}\r\n\uD83D\uDD17 API Base: http://localhost:${serverInstance.port}/api\r\n\r\nAvailable endpoints:\r\n- POST   http://localhost:${serverInstance.port}/v1/*            → Proxy to Claude API\r\n- GET    http://localhost:${serverInstance.port}/api/accounts    → List accounts\r\n- POST   http://localhost:${serverInstance.port}/api/accounts    → Add account\r\n- DELETE http://localhost:${serverInstance.port}/api/accounts/:id → Remove account\r\n- GET    http://localhost:${serverInstance.port}/api/stats       → View statistics\r\n- POST   http://localhost:${serverInstance.port}/api/stats/reset → Reset statistics\r\n- GET    http://localhost:${serverInstance.port}/api/config      → View configuration\r\n- PATCH  http://localhost:${serverInstance.port}/api/config      → Update configuration\r\n\r\n⚡ Ready to proxy requests...\r\n`);\r\n\r\n\t// Log configuration\r\n\tconsole.log(\r\n\t\t`⚙\uFE0F  Current strategy: ${config.getStrategy()} (default: ${DEFAULT_STRATEGY})`,\r\n\t);\r\n\r\n\t// Log initial account status\r\n\tconst accounts = dbOps.getAllAccounts();\r\n\tconst activeAccounts = accounts.filter(\r\n\t\t(a) => !a.paused && (!a.expires_at || a.expires_at > Date.now()),\r\n\t);\r\n\tlog.info(\r\n\t\t`Loaded ${accounts.length} accounts (${activeAccounts.length} active)`,\r\n\t);\r\n\tif (activeAccounts.length === 0) {\r\n\t\tlog.warn(\r\n\t\t\t\"No active accounts available - requests will be forwarded without authentication\",\r\n\t\t);\r\n\t}\r\n\r\n\treturn {\r\n\t\tport: serverInstance.port,\r\n\t\tstop: () => {\r\n\t\t\tif (serverInstance) {\r\n\t\t\t\tserverInstance.stop();\r\n\t\t\t\tserverInstance = null;\r\n\t\t\t}\r\n\t\t},\r\n\t};\r\n}\r\n\r\n// Graceful shutdown handler\r\nasync function handleGracefulShutdown(signal: string) {\r\n\tconsole.log(`\\n\uD83D\uDC4B Received ${signal}, shutting down gracefully...`);\r\n\ttry {\r\n\t\tterminateUsageWorker();\r\n\t\tawait shutdown();\r\n\t\tconsole.log(\"✅ Shutdown complete\");\r\n\t\tprocess.exit(0);\r\n\t} catch (error) {\r\n\t\tconsole.error(\"❌ Error during shutdown:\", error);\r\n\t\tprocess.exit(1);\r\n\t}\r\n}\r\n\r\n// Register signal handlers\r\nprocess.on(\"SIGINT\", () => handleGracefulShutdown(\"SIGINT\"));\r\nprocess.on(\"SIGTERM\", () => handleGracefulShutdown(\"SIGTERM\"));\r\n\r\n// Run server if this is the main entry point\r\nif (import.meta.main) {\r\n\tstartServer();\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/apps/server/src/server.ts b/apps/server/src/server.ts
+--- a/apps/server/src/server.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/apps/server/src/server.ts	(date 1753871276476)
+@@ -1,14 +1,11 @@
+ import { dirname } from "node:path";
+-import { Config, type RuntimeConfig } from "@ccflare/config";
++import { Config } from "@ccflare/config";
++import type { LoadBalancingStrategy } from "@ccflare/core";
+ import {
+-	CACHE,
+ 	DEFAULT_STRATEGY,
+-	HTTP_STATUS,
+-	NETWORK,
+ 	registerDisposable,
+ 	setPricingLogger,
+ 	shutdown,
+-	TIME_CONSTANTS,
+ } from "@ccflare/core";
+ import { container, SERVICE_KEYS } from "@ccflare/core-di";
+ // Import React dashboard assets
+@@ -26,250 +23,201 @@
+ } from "@ccflare/proxy";
+ import { serve } from "bun";
+ 
+-// Helper function to resolve dashboard assets with fallback
+-function resolveDashboardAsset(assetPath: string): string | null {
+-	try {
+-		// Try resolving as a package first
+-		return Bun.resolveSync(
+-			`@ccflare/dashboard-web/dist${assetPath}`,
+-			dirname(import.meta.path),
+-		);
+-	} catch {
+-		// Fallback to relative path within the repo (development / mono-repo usage)
+-		try {
+-			return Bun.resolveSync(
+-				`../../../packages/dashboard-web/dist${assetPath}`,
+-				dirname(import.meta.path),
+-			);
+-		} catch {
+-			return null;
+-		}
+-	}
+-}
+-
+-// Helper function to serve dashboard files with proper headers
+-function serveDashboardFile(
+-	assetPath: string,
+-	contentType?: string,
+-	cacheControl?: string,
+-): Response {
+-	const fullPath = resolveDashboardAsset(assetPath);
+-	if (!fullPath) {
+-		return new Response("Not Found", { status: HTTP_STATUS.NOT_FOUND });
+-	}
+-
+-	// Auto-detect content type if not provided
+-	if (!contentType) {
+-		if (assetPath.endsWith(".js")) contentType = "application/javascript";
+-		else if (assetPath.endsWith(".css")) contentType = "text/css";
+-		else if (assetPath.endsWith(".html")) contentType = "text/html";
+-		else if (assetPath.endsWith(".json")) contentType = "application/json";
+-		else if (assetPath.endsWith(".svg")) contentType = "image/svg+xml";
+-		else contentType = "text/plain";
+-	}
+-
+-	return new Response(Bun.file(fullPath), {
+-		headers: {
+-			"Content-Type": contentType,
+-			"Cache-Control": cacheControl || CACHE.CACHE_CONTROL_NO_CACHE,
+-		},
+-	});
+-}
+-
+-// Module-level server instance
+-let serverInstance: ReturnType<typeof serve> | null = null;
+-
+-// Export for programmatic use
+-export default function startServer(options?: {
+-	port?: number;
+-	withDashboard?: boolean;
+-}) {
+-	// Return existing server if already running
+-	if (serverInstance) {
+-		return {
+-			port: serverInstance.port,
+-			stop: () => {
+-				if (serverInstance) {
+-					serverInstance.stop();
+-					serverInstance = null;
+-				}
+-			},
+-		};
+-	}
+-
+-	const { port = NETWORK.DEFAULT_PORT, withDashboard = true } = options || {};
+-
+-	// Initialize DI container
+-	container.registerInstance(SERVICE_KEYS.Config, new Config());
+-	container.registerInstance(SERVICE_KEYS.Logger, new Logger("Server"));
++// Initialize DI container
++container.registerInstance(SERVICE_KEYS.Config, new Config());
++container.registerInstance(SERVICE_KEYS.Logger, new Logger("Server"));
+ 
+-	// Initialize components
+-	const config = container.resolve<Config>(SERVICE_KEYS.Config);
+-	const runtime = config.getRuntime();
+-	// Override port if provided
+-	if (port !== runtime.port) {
+-		runtime.port = port;
+-	}
+-	DatabaseFactory.initialize(undefined, runtime);
+-	const dbOps = DatabaseFactory.getInstance();
+-	const db = dbOps.getDatabase();
+-	const log = container.resolve<Logger>(SERVICE_KEYS.Logger);
+-	container.registerInstance(SERVICE_KEYS.Database, dbOps);
++// Initialize components
++const config = container.resolve<Config>(SERVICE_KEYS.Config);
++const runtime = config.getRuntime();
++DatabaseFactory.initialize(undefined, runtime);
++const dbOps = DatabaseFactory.getInstance();
++const db = dbOps.getDatabase();
++container.registerInstance(SERVICE_KEYS.Database, dbOps);
+ 
+-	// Initialize async DB writer
+-	const asyncWriter = new AsyncDbWriter();
+-	container.registerInstance(SERVICE_KEYS.AsyncWriter, asyncWriter);
+-	registerDisposable(asyncWriter);
++// Initialize async DB writer
++const asyncWriter = new AsyncDbWriter();
++container.registerInstance(SERVICE_KEYS.AsyncWriter, asyncWriter);
++registerDisposable(asyncWriter);
+ 
+-	// Initialize pricing logger
+-	const pricingLogger = new Logger("Pricing");
+-	container.registerInstance(SERVICE_KEYS.PricingLogger, pricingLogger);
+-	setPricingLogger(pricingLogger);
++// Initialize pricing logger
++const pricingLogger = new Logger("Pricing");
++container.registerInstance(SERVICE_KEYS.PricingLogger, pricingLogger);
++setPricingLogger(pricingLogger);
+ 
+-	const apiRouter = new APIRouter({ db, config, dbOps });
++const apiRouter = new APIRouter({ db, config, dbOps });
++const log = container.resolve<Logger>(SERVICE_KEYS.Logger);
++
++log.info("Starting ccflare server...");
++log.info(`Port: ${runtime.port}`);
++log.info(`Session duration: ${runtime.sessionDurationMs}ms`);
+ 
+-	// Initialize load balancing strategy (will be created after runtime config)
++// Load balancing strategy initialization
++let strategy: LoadBalancingStrategy;
+ 
+-	// Get the provider
+-	const provider = getProvider("anthropic");
+-	if (!provider) {
+-		throw new Error("Anthropic provider not available");
+-	}
++// Refresh token stampede prevention
++const refreshInFlight = new Map<string, Promise<string>>();
++
++// Get provider from registry (for now just Anthropic)
++const provider = getProvider("anthropic");
++if (!provider) {
++	throw new Error("Anthropic provider not found in registry");
++}
+ 
+-	// Create runtime config
+-	const runtimeConfig: RuntimeConfig = {
+-		clientId: config.get(
+-			"client_id",
+-			"9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+-		) as string,
+-		retry: {
+-			attempts: config.get("retry_attempts", 3) as number,
+-			delayMs: config.get("retry_delay_ms", 1000) as number,
+-			backoff: config.get("retry_backoff", 2) as number,
+-		},
+-		sessionDurationMs: config.get(
+-			"session_duration_ms",
+-			TIME_CONSTANTS.SESSION_DURATION_DEFAULT,
+-		) as number,
+-		port,
+-	};
++function initStrategy(): LoadBalancingStrategy {
++	const strategyName = config.getStrategy();
++	log.info(`Initializing load balancing strategy: ${strategyName}`);
++
++	// Only session-based strategy is supported
++	const sessionStrategy = new SessionStrategy(runtime.sessionDurationMs);
++	sessionStrategy.initialize(dbOps);
++	return sessionStrategy;
++}
+ 
+-	// Now create the strategy with runtime config
+-	const strategy = new SessionStrategy(runtimeConfig.sessionDurationMs);
+-	strategy.initialize(dbOps);
++strategy = initStrategy();
+ 
+-	// Proxy context
+-	const proxyContext: ProxyContext = {
+-		strategy,
+-		dbOps,
+-		runtime: runtimeConfig,
+-		provider,
+-		refreshInFlight: new Map(),
+-		asyncWriter,
+-		usageWorker: getUsageWorker(),
+-	};
++// Create proxy context (without worker initially)
++const proxyContext: ProxyContext = {
++	strategy,
++	dbOps,
++	runtime,
++	provider,
++	refreshInFlight,
++	asyncWriter,
++	usageWorker: null as unknown as Worker, // Will be set below
++};
+ 
+-	// Hot reload strategy configuration
+-	config.on("change", (changeType, fieldName) => {
+-		if (fieldName === "strategy") {
+-			log.info(`Strategy configuration changed: ${changeType}`);
+-			const newStrategyName = config.getStrategy();
+-			// For now, only SessionStrategy is supported
+-			if (newStrategyName === "session") {
+-				const strategy = new SessionStrategy(runtimeConfig.sessionDurationMs);
+-				strategy.initialize(dbOps);
+-				proxyContext.strategy = strategy;
+-			}
+-		}
+-	});
++// Initialize usage worker
++proxyContext.usageWorker = getUsageWorker();
++
++// Watch for strategy changes
++config.on("change", ({ key }) => {
++	if (key === "lb_strategy") {
++		log.info(`Strategy changed to ${config.getStrategy()}`);
++		strategy = initStrategy();
++		// Update proxy context strategy
++		proxyContext.strategy = strategy;
++	}
++});
+ 
+-	// Main server
+-	serverInstance = serve({
+-		port: runtime.port,
+-		idleTimeout: NETWORK.IDLE_TIMEOUT_MAX, // Max allowed by Bun
+-		async fetch(req) {
+-			const url = new URL(req.url);
++// Main server
++const server = serve({
++	port: runtime.port,
++	idleTimeout: 255, // Max allowed by Bun
++	async fetch(req) {
++		const url = new URL(req.url);
+ 
+-			// Try API routes first
+-			const apiResponse = await apiRouter.handleRequest(url, req);
+-			if (apiResponse) {
+-				return apiResponse;
+-			}
++		// Try API routes first
++		const apiResponse = await apiRouter.handleRequest(url, req);
++		if (apiResponse) {
++			return apiResponse;
++		}
+ 
+-			// Dashboard routes (only if enabled)
+-			if (withDashboard) {
+-				if (url.pathname === "/" || url.pathname === "/dashboard") {
+-					return serveDashboardFile("/index.html", "text/html");
+-				}
++		// Dashboard routes
++		if (url.pathname === "/" || url.pathname === "/dashboard") {
++			// Read the HTML file directly
++			let dashboardPath: string;
++			try {
++				dashboardPath = Bun.resolveSync(
++					"@ccflare/dashboard-web/dist/index.html",
++					dirname(import.meta.path),
++				);
++			} catch {
++				// Fallback to a relative path within the repo (development / mono-repo usage)
++				dashboardPath = Bun.resolveSync(
++					"../../../packages/dashboard-web/dist/index.html",
++					dirname(import.meta.path),
++				);
++			}
++			const file = Bun.file(dashboardPath);
++			if (!file.exists()) {
++				return new Response("Not Found", { status: 404 });
++			}
++			return new Response(file, {
++				headers: { "Content-Type": "text/html" },
++			});
++		}
+ 
+-				// Serve dashboard static assets
+-				if ((dashboardManifest as Record<string, string>)[url.pathname]) {
+-					return serveDashboardFile(
+-						url.pathname,
+-						undefined,
+-						CACHE.CACHE_CONTROL_STATIC,
++		// Serve dashboard static assets
++		if ((dashboardManifest as Record<string, string>)[url.pathname]) {
++			try {
++				let assetPath: string;
++				try {
++					assetPath = Bun.resolveSync(
++						`@ccflare/dashboard-web/dist${url.pathname}`,
++						dirname(import.meta.path),
++					);
++				} catch {
++					// Fallback to relative path in mono-repo
++					assetPath = Bun.resolveSync(
++						`../../../packages/dashboard-web/dist${url.pathname}`,
++						dirname(import.meta.path),
+ 					);
+ 				}
++
++				const file = Bun.file(assetPath);
++				if (!file.exists()) {
++					return new Response("Not Found", { status: 404 });
++				}
++				const mimeType = file.type || "application/octet-stream";
++				return new Response(file, {
++					headers: {
++						"Content-Type": mimeType,
++						"Cache-Control": "public, max-age=31536000",
++					},
++				});
++			} catch {
++				// Asset not found
+ 			}
++		}
+ 
+-			// All other paths go to proxy
+-			return handleProxy(req, url, proxyContext);
+-		},
+-	});
++		// Only proxy requests to Anthropic API
++		if (!url.pathname.startsWith("/v1/")) {
++			return new Response("Not Found", { status: 404 });
++		}
++
++		// Handle proxy request
++		return handleProxy(req, url, proxyContext);
++	},
++});
+ 
+-	// Log server startup
+-	console.log(`
+-🎯 ccflare Server v${process.env.npm_package_version || "1.0.0"}
+-🌐 Port: ${serverInstance.port}
+-📊 Dashboard: ${withDashboard ? `http://localhost:${serverInstance.port}` : "disabled"}
+-🔗 API Base: http://localhost:${serverInstance.port}/api
+-
+-Available endpoints:
+-- POST   http://localhost:${serverInstance.port}/v1/*            → Proxy to Claude API
+-- GET    http://localhost:${serverInstance.port}/api/accounts    → List accounts
+-- POST   http://localhost:${serverInstance.port}/api/accounts    → Add account
+-- DELETE http://localhost:${serverInstance.port}/api/accounts/:id → Remove account
+-- GET    http://localhost:${serverInstance.port}/api/stats       → View statistics
+-- POST   http://localhost:${serverInstance.port}/api/stats/reset → Reset statistics
+-- GET    http://localhost:${serverInstance.port}/api/config      → View configuration
+-- PATCH  http://localhost:${serverInstance.port}/api/config      → Update configuration
+-
+-⚡ Ready to proxy requests...
+-`);
+-
+-	// Log configuration
+-	console.log(
+-		`⚙️  Current strategy: ${config.getStrategy()} (default: ${DEFAULT_STRATEGY})`,
+-	);
++console.log(`🚀 ccflare server running on http://localhost:${server.port}`);
++console.log(`📊 Dashboard: http://localhost:${server.port}/dashboard`);
++console.log(`🔍 Health check: http://localhost:${server.port}/health`);
++console.log(
++	`⚙️  Current strategy: ${config.getStrategy()} (default: ${DEFAULT_STRATEGY})`,
++);
+ 
+-	// Log initial account status
+-	const accounts = dbOps.getAllAccounts();
+-	const activeAccounts = accounts.filter(
+-		(a) => !a.paused && (!a.expires_at || a.expires_at > Date.now()),
+-	);
+-	log.info(
+-		`Loaded ${accounts.length} accounts (${activeAccounts.length} active)`,
+-	);
+-	if (activeAccounts.length === 0) {
+-		log.warn(
+-			"No active accounts available - requests will be forwarded without authentication",
+-		);
+-	}
++// Log initial account status
++const accounts = dbOps.getAllAccounts();
++const activeAccounts = accounts.filter(
++	(a) => !a.paused && (!a.expires_at || a.expires_at > Date.now()),
++);
++log.info(
++	`Loaded ${accounts.length} accounts (${activeAccounts.length} active)`,
++);
++if (activeAccounts.length === 0) {
++	log.warn(
++		"No active accounts available - requests will be forwarded without authentication",
++	);
++}
+ 
+-	return {
+-		port: serverInstance.port,
+-		stop: () => {
+-			if (serverInstance) {
+-				serverInstance.stop();
+-				serverInstance = null;
+-			}
+-		},
+-	};
+-}
++// Graceful shutdown
++process.on("SIGINT", async () => {
++	console.log("\n👋 Shutting down gracefully...");
++	try {
++		terminateUsageWorker();
++		await shutdown();
++		console.log("✅ Shutdown complete");
++		process.exit(0);
++	} catch (error) {
++		console.error("❌ Error during shutdown:", error);
++		process.exit(1);
++	}
++});
+ 
+-// Graceful shutdown handler
+-async function handleGracefulShutdown(signal: string) {
+-	console.log(`\n👋 Received ${signal}, shutting down gracefully...`);
++process.on("SIGTERM", async () => {
++	console.log("\n👋 Shutting down gracefully...");
+ 	try {
+ 		terminateUsageWorker();
+ 		await shutdown();
+@@ -279,13 +227,19 @@
+ 		console.error("❌ Error during shutdown:", error);
+ 		process.exit(1);
+ 	}
+-}
++});
+ 
+-// Register signal handlers
+-process.on("SIGINT", () => handleGracefulShutdown("SIGINT"));
+-process.on("SIGTERM", () => handleGracefulShutdown("SIGTERM"));
+-
+-// Run server if this is the main entry point
+-if (import.meta.main) {
+-	startServer();
++// Export for programmatic use
++export default function startServer(_options?: {
++	port?: number;
++	withDashboard?: boolean;
++}) {
++	// This is a placeholder for when the server needs to be started programmatically
++	return {
++		port: server.port,
++		stop: () => {
++			// Server stop logic
++			server.stop();
++		},
++	};
+ }
+Index: packages/cli-commands/src/runner.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { parseArgs } from \"node:util\";\r\nimport { Config } from \"@ccflare/config\";\r\nimport { shutdown } from \"@ccflare/core\";\r\nimport { container, SERVICE_KEYS } from \"@ccflare/core-di\";\r\nimport { DatabaseFactory } from \"@ccflare/database\";\r\nimport {\r\n\taddAccount,\r\n\tgetAccountsList,\r\n\tpauseAccount,\r\n\tremoveAccountWithConfirmation,\r\n\tresumeAccount,\r\n} from \"./commands/account\";\r\nimport { analyzePerformance } from \"./commands/analyze\";\r\nimport { getHelpText } from \"./commands/help\";\r\nimport { clearRequestHistory, resetAllStats } from \"./commands/stats\";\r\n\r\n/**\r\n * Main CLI runner\r\n */\r\nexport async function runCli(argv: string[]): Promise<void> {\r\n\t// Initialize DI container and services\r\n\tcontainer.registerInstance(SERVICE_KEYS.Config, new Config());\r\n\tconst config = container.resolve<Config>(SERVICE_KEYS.Config);\r\n\tDatabaseFactory.initialize();\r\n\tconst dbOps = DatabaseFactory.getInstance();\r\n\tcontainer.registerInstance(SERVICE_KEYS.Database, dbOps);\r\n\r\n\ttry {\r\n\t\t// Parse command line arguments\r\n\t\tconst { positionals, values } = parseArgs({\r\n\t\t\targs: argv.slice(2),\r\n\t\t\tstrict: false,\r\n\t\t\toptions: {\r\n\t\t\t\tmode: { type: \"string\" },\r\n\t\t\t\ttier: { type: \"string\" },\r\n\t\t\t\tforce: { type: \"boolean\" },\r\n\t\t\t},\r\n\t\t});\r\n\r\n\t\tconst command = positionals[0];\r\n\r\n\t\tswitch (command) {\r\n\t\t\tcase \"add\": {\r\n\t\t\t\tconst name = positionals[1];\r\n\t\t\t\tif (!name) {\r\n\t\t\t\t\tconsole.error(\"Error: Account name is required\");\r\n\t\t\t\t\tconsole.log(\r\n\t\t\t\t\t\t\"Usage: ccflare-cli add <name> [--mode <max|console>] [--tier <1|5|20>]\",\r\n\t\t\t\t\t);\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\r\n\t\t\t\t// Parse options\r\n\t\t\t\tconst mode = values.mode as \"max\" | \"console\" | undefined;\r\n\t\t\t\tconst tierValue = values.tier\r\n\t\t\t\t\t? parseInt(values.tier as string)\r\n\t\t\t\t\t: undefined;\r\n\t\t\t\tconst tier =\r\n\t\t\t\t\ttierValue === 1 || tierValue === 5 || tierValue === 20\r\n\t\t\t\t\t\t? tierValue\r\n\t\t\t\t\t\t: undefined;\r\n\r\n\t\t\t\tawait addAccount(dbOps, config, { name, mode, tier });\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"list\": {\r\n\t\t\t\tconst accounts = getAccountsList(dbOps);\r\n\r\n\t\t\t\tif (accounts.length === 0) {\r\n\t\t\t\t\tconsole.log(\"No accounts found\");\r\n\t\t\t\t} else {\r\n\t\t\t\t\tconsole.log(`\\nAccounts (${accounts.length}):`);\r\n\t\t\t\t\tconsole.log(\"─\".repeat(100));\r\n\r\n\t\t\t\t\t// Header\r\n\t\t\t\t\tconsole.log(\r\n\t\t\t\t\t\t\"Name\".padEnd(20) +\r\n\t\t\t\t\t\t\t\"Type\".padEnd(10) +\r\n\t\t\t\t\t\t\t\"Tier\".padEnd(6) +\r\n\t\t\t\t\t\t\t\"Requests\".padEnd(12) +\r\n\t\t\t\t\t\t\t\"Token\".padEnd(10) +\r\n\t\t\t\t\t\t\t\"Status\".padEnd(20) +\r\n\t\t\t\t\t\t\t\"Session\",\r\n\t\t\t\t\t);\r\n\t\t\t\t\tconsole.log(\"─\".repeat(100));\r\n\r\n\t\t\t\t\t// Rows\r\n\t\t\t\t\tfor (const account of accounts) {\r\n\t\t\t\t\t\tconsole.log(\r\n\t\t\t\t\t\t\taccount.name.padEnd(20) +\r\n\t\t\t\t\t\t\t\taccount.provider.padEnd(10) +\r\n\t\t\t\t\t\t\t\taccount.tierDisplay.padEnd(6) +\r\n\t\t\t\t\t\t\t\t`${account.requestCount}/${account.totalRequests}`.padEnd(12) +\r\n\t\t\t\t\t\t\t\taccount.tokenStatus.padEnd(10) +\r\n\t\t\t\t\t\t\t\taccount.rateLimitStatus.padEnd(20) +\r\n\t\t\t\t\t\t\t\taccount.sessionInfo,\r\n\t\t\t\t\t\t);\r\n\t\t\t\t\t}\r\n\t\t\t\t}\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"remove\": {\r\n\t\t\t\tconst name = positionals[1];\r\n\t\t\t\tif (!name) {\r\n\t\t\t\t\tconsole.error(\"Error: Account name is required\");\r\n\t\t\t\t\tconsole.log(\"Usage: ccflare-cli remove <name> [--force]\");\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\r\n\t\t\t\tconst result = await removeAccountWithConfirmation(\r\n\t\t\t\t\tdbOps,\r\n\t\t\t\t\tname,\r\n\t\t\t\t\tvalues.force === true,\r\n\t\t\t\t);\r\n\t\t\t\tconsole.log(result.message);\r\n\t\t\t\tif (!result.success) {\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"reset-stats\": {\r\n\t\t\t\tconst db = dbOps.getDatabase();\r\n\t\t\t\tresetAllStats(db);\r\n\t\t\t\tconsole.log(\"Account statistics reset successfully\");\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"clear-history\": {\r\n\t\t\t\tconst db = dbOps.getDatabase();\r\n\t\t\t\tconst result = clearRequestHistory(db);\r\n\t\t\t\tconsole.log(`Cleared ${result.count} request records`);\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"pause\": {\r\n\t\t\t\tconst name = positionals[1];\r\n\t\t\t\tif (!name) {\r\n\t\t\t\t\tconsole.error(\"Error: Account name is required\");\r\n\t\t\t\t\tconsole.log(\"Usage: ccflare-cli pause <name>\");\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\r\n\t\t\t\tconst result = pauseAccount(dbOps, name);\r\n\t\t\t\tconsole.log(result.message);\r\n\t\t\t\tif (!result.success) {\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"resume\": {\r\n\t\t\t\tconst name = positionals[1];\r\n\t\t\t\tif (!name) {\r\n\t\t\t\t\tconsole.error(\"Error: Account name is required\");\r\n\t\t\t\t\tconsole.log(\"Usage: ccflare-cli resume <name>\");\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\r\n\t\t\t\tconst result = resumeAccount(dbOps, name);\r\n\t\t\t\tconsole.log(result.message);\r\n\t\t\t\tif (!result.success) {\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tcase \"analyze\": {\r\n\t\t\t\tconst db = dbOps.getDatabase();\r\n\t\t\t\tanalyzePerformance(db);\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\r\n\t\t\tdefault: {\r\n\t\t\t\tconsole.log(getHelpText());\r\n\t\t\t\tif (command && command !== \"help\") {\r\n\t\t\t\t\tconsole.error(`\\nError: Unknown command '${command}'`);\r\n\t\t\t\t\tprocess.exit(1);\r\n\t\t\t\t}\r\n\t\t\t\tbreak;\r\n\t\t\t}\r\n\t\t}\r\n\t} catch (error) {\r\n\t\tconsole.error(`Error: ${error instanceof Error ? error.message : error}`);\r\n\t\tprocess.exit(1);\r\n\t} finally {\r\n\t\t// Always shutdown resources\r\n\t\tawait shutdown();\r\n\t}\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/cli-commands/src/runner.ts b/packages/cli-commands/src/runner.ts
+--- a/packages/cli-commands/src/runner.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/cli-commands/src/runner.ts	(date 1753871270747)
+@@ -13,6 +13,7 @@
+ import { analyzePerformance } from "./commands/analyze";
+ import { getHelpText } from "./commands/help";
+ import { clearRequestHistory, resetAllStats } from "./commands/stats";
++import { handleStrategyCommand } from "./commands/strategy";
+ 
+ /**
+  * Main CLI runner
+@@ -172,6 +173,11 @@
+ 				analyzePerformance(db);
+ 				break;
+ 			}
++
++			case "strategy": {
++				handleStrategyCommand(positionals.slice(1));
++				break;
++			}
+ 
+ 			default: {
+ 				console.log(getHelpText());
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+--- /dev/null	(date 1753871276291)
++++ b/.idea/.gitignore	(date 1753871276291)
+@@ -0,0 +1,5 @@
++# Default ignored files
++/shelf/
++/workspace.xml
++# Editor-based HTTP Client requests
++/httpRequests/
+Index: packages/types/src/api.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>export interface RequestMeta {\r\n\tid: string;\r\n\tmethod: string;\r\n\tpath: string;\r\n\ttimestamp: number;\r\n\tagentUsed?: string | null;\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/types/src/api.ts b/packages/types/src/api.ts
+--- a/packages/types/src/api.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/types/src/api.ts	(date 1753871285279)
+@@ -3,5 +3,4 @@
+ 	method: string;
+ 	path: string;
+ 	timestamp: number;
+-	agentUsed?: string | null;
+ }
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1753871276294)
++++ b/.idea/vcs.xml	(date 1753871276294)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: packages/types/src/strategy.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import type { Account } from \"./account\";\r\n\r\nexport enum StrategyName {\r\n\tSession = \"session\",\r\n}\r\n\r\n/**\r\n * Interface for strategy-specific database operations\r\n * Allows strategies to interact with the database without direct SQL access\r\n */\r\nexport interface StrategyStore {\r\n\t/**\r\n\t * Reset session for an account\r\n\t * Updates session_start and session_request_count\r\n\t */\r\n\tresetAccountSession(accountId: string, timestamp: number): void;\r\n\r\n\t/**\r\n\t * Get all accounts (optional method for strategies that need full account list)\r\n\t */\r\n\tgetAllAccounts?(): Account[];\r\n\r\n\t/**\r\n\t * Update account request count\r\n\t */\r\n\tupdateAccountRequestCount?(accountId: string, count: number): void;\r\n\r\n\t/**\r\n\t * Get account by ID\r\n\t */\r\n\tgetAccount?(accountId: string): Account | null;\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/types/src/strategy.ts b/packages/types/src/strategy.ts
+--- a/packages/types/src/strategy.ts	(revision 738c666fdfccf690eb0012c07bf021e99723cc4f)
++++ b/packages/types/src/strategy.ts	(date 1753871288338)
+@@ -2,6 +2,10 @@
+ 
+ export enum StrategyName {
+ 	Session = "session",
++	RoundRobin = "round-robin",
++	LeastUsed = "least-used",
++	Weighted = "weighted",
++	ModelAware = "model-aware",
+ }
+ 
+ /**
+Index: packages/load-balancer/src/strategy-factory.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategy-factory.ts b/packages/load-balancer/src/strategy-factory.ts
+new file mode 100644
+--- /dev/null	(date 1753871270762)
++++ b/packages/load-balancer/src/strategy-factory.ts	(date 1753871270762)
+@@ -0,0 +1,65 @@
++import type { LoadBalancingStrategy } from "@ccflare/core";
++import { StrategyName } from "@ccflare/types";
++import {
++	LeastUsedStrategy,
++	ModelAwareStrategy,
++	RoundRobinStrategy,
++	SessionAwareStrategy,
++	SessionStrategy,
++	WeightedStrategy,
++} from "./strategies";
++
++/**
++ * Factory function to create load balancing strategies
++ */
++export function createStrategy(
++	strategyName: StrategyName,
++	sessionDurationMs: number = 5 * 60 * 60 * 1000,
++): LoadBalancingStrategy {
++	switch (strategyName) {
++		case StrategyName.Session:
++			return new SessionStrategy(sessionDurationMs);
++
++		case StrategyName.RoundRobin:
++			return new RoundRobinStrategy();
++
++		case StrategyName.LeastUsed:
++			return new LeastUsedStrategy(sessionDurationMs);
++
++		case StrategyName.Weighted:
++			return new WeightedStrategy();
++
++		case StrategyName.ModelAware:
++			return new ModelAwareStrategy();
++
++		default:
++			// For the enhanced session strategy, map to SessionAware
++			// This allows backwards compatibility while providing better OAuth handling
++			return new SessionAwareStrategy(sessionDurationMs);
++	}
++}
++
++/**
++ * Get a human-readable description of a strategy
++ */
++export function getStrategyDescription(strategyName: StrategyName): string {
++	switch (strategyName) {
++		case StrategyName.Session:
++			return "Maintains 5-hour sessions with a single account to minimize rate limits";
++
++		case StrategyName.RoundRobin:
++			return "Cycles through accounts evenly to distribute load equally";
++
++		case StrategyName.LeastUsed:
++			return "Prioritizes accounts with lowest usage to balance over time";
++
++		case StrategyName.Weighted:
++			return "Uses account weights based on plan type (Max accounts get more requests)";
++
++		case StrategyName.ModelAware:
++			return "Routes requests based on Claude model compatibility with account plans";
++
++		default:
++			return "Unknown strategy";
++	}
++}
+Index: packages/load-balancer/src/strategies/session-aware.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/load-balancer/src/strategies/session-aware.ts b/packages/load-balancer/src/strategies/session-aware.ts
+new file mode 100644
+--- /dev/null	(date 1753871270765)
++++ b/packages/load-balancer/src/strategies/session-aware.ts	(date 1753871270765)
+@@ -0,0 +1,162 @@
++import type {
++	Account,
++	LoadBalancingStrategy,
++	RequestMeta,
++	StrategyStore,
++} from "@ccflare/core";
++import { isAccountAvailable } from "@ccflare/core";
++import { Logger } from "@ccflare/logger";
++
++/**
++ * Enhanced session strategy that maintains 5-hour sessions with OAuth awareness
++ * Includes logic for handling OAuth token expiration and refresh
++ */
++export class SessionAwareStrategy implements LoadBalancingStrategy {
++	private sessionDurationMs: number;
++	private store: StrategyStore | null = null;
++	private log = new Logger("SessionAwareStrategy");
++	private oauthExpiryBuffer: number; // Buffer time before OAuth expiry to trigger refresh
++
++	constructor(
++		sessionDurationMs: number = 5 * 60 * 60 * 1000, // 5 hours
++		oauthExpiryBuffer: number = 30 * 60 * 1000, // 30 minutes buffer
++	) {
++		this.sessionDurationMs = sessionDurationMs;
++		this.oauthExpiryBuffer = oauthExpiryBuffer;
++	}
++
++	initialize(store: StrategyStore): void {
++		this.store = store;
++	}
++
++	private resetSessionIfExpired(account: Account): void {
++		const now = Date.now();
++
++		if (
++			!account.session_start ||
++			now - account.session_start >= this.sessionDurationMs
++		) {
++			// Reset session
++			if (this.store) {
++				const wasExpired = account.session_start !== null;
++				this.log.info(
++					wasExpired
++						? `Session expired for account ${account.name}, starting new session`
++						: `Starting new session for account ${account.name}`,
++				);
++				this.store.resetAccountSession(account.id, now);
++
++				// Update the account object to reflect changes
++				account.session_start = now;
++				account.session_request_count = 0;
++			}
++		}
++	}
++
++	private isOAuthTokenNearExpiry(account: Account, now: number): boolean {
++		if (!account.expires_at) return false;
++		return account.expires_at - now <= this.oauthExpiryBuffer;
++	}
++
++	private needsOAuthRefresh(account: Account, now: number): boolean {
++		// Check if token is expired or near expiry
++		return (
++			!account.expires_at ||
++			account.expires_at <= now ||
++			this.isOAuthTokenNearExpiry(account, now)
++		);
++	}
++
++	select(accounts: Account[], _meta: RequestMeta): Account[] {
++		const now = Date.now();
++
++		// First, identify accounts that need OAuth token refresh
++		const needsRefresh = accounts.filter((account) =>
++			this.needsOAuthRefresh(account, now),
++		);
++
++		if (needsRefresh.length > 0) {
++			this.log.info(
++				`${needsRefresh.length} accounts need OAuth token refresh: ${needsRefresh.map((a) => a.name).join(", ")}`,
++			);
++		}
++
++		// Find account with active session (most recent session_start within window)
++		let activeAccount: Account | null = null;
++		let mostRecentSessionStart = 0;
++
++		for (const account of accounts) {
++			if (
++				account.session_start &&
++				now - account.session_start < this.sessionDurationMs &&
++				account.session_start > mostRecentSessionStart
++			) {
++				activeAccount = account;
++				mostRecentSessionStart = account.session_start;
++			}
++		}
++
++		// If we have an active account and it's available, use it exclusively
++		if (activeAccount && isAccountAvailable(activeAccount, now)) {
++			// Check if OAuth needs refresh but don't block - let the proxy handle it
++			if (this.needsOAuthRefresh(activeAccount, now)) {
++				this.log.warn(
++					`Active account ${activeAccount.name} needs OAuth refresh but continuing session`,
++				);
++			}
++
++			// Reset session if expired (shouldn't happen but just in case)
++			this.resetSessionIfExpired(activeAccount);
++
++			this.log.info(
++				`Continuing session for account ${activeAccount.name} (${activeAccount.session_request_count} requests in session, OAuth expires: ${activeAccount.expires_at ? new Date(activeAccount.expires_at).toISOString() : "unknown"})`,
++			);
++
++			// Return active account first, then others as fallback
++			const others = accounts.filter(
++				(a) => a.id !== activeAccount.id && isAccountAvailable(a, now),
++			);
++			return [activeAccount, ...others];
++		}
++
++		// No active session or active account is rate limited
++		// Filter available accounts, preferring those with fresh OAuth tokens
++		const available = accounts.filter((a) => isAccountAvailable(a, now));
++
++		if (available.length === 0) return [];
++
++		// Sort by OAuth token freshness, then by usage
++		available.sort((a, b) => {
++			const aNeedsRefresh = this.needsOAuthRefresh(a, now);
++			const bNeedsRefresh = this.needsOAuthRefresh(b, now);
++
++			// Prefer accounts that don't need OAuth refresh
++			if (aNeedsRefresh !== bNeedsRefresh) {
++				return aNeedsRefresh ? 1 : -1;
++			}
++
++			// If both need refresh or both are fresh, prefer less used accounts
++			const aUsage = a.session_request_count || 0;
++			const bUsage = b.session_request_count || 0;
++			return aUsage - bUsage;
++		});
++
++		// Pick the first available account and start a new session with it
++		const chosenAccount = available[0];
++		this.resetSessionIfExpired(chosenAccount);
++
++		if (this.needsOAuthRefresh(chosenAccount, now)) {
++			this.log.info(
++				`Starting session with account ${chosenAccount.name} (OAuth needs refresh)`,
++			);
++		} else {
++			this.log.info(
++				`Starting session with account ${chosenAccount.name} (OAuth fresh until ${chosenAccount.expires_at ? new Date(chosenAccount.expires_at).toISOString() : "unknown"})`,
++			);
++		}
++
++		// Return chosen account first, then others as fallback
++		const others = available.filter((a) => a.id !== chosenAccount.id);
++		return [chosenAccount, ...others];
++	}
++}
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+--- /dev/null	(date 1753871276281)
++++ b/.idea/modules.xml	(date 1753871276281)
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/ccflare.iml" filepath="$PROJECT_DIR$/.idea/ccflare.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/ccflare.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/ccflare.iml b/.idea/ccflare.iml
+new file mode 100644
+--- /dev/null	(date 1753871276286)
++++ b/.idea/ccflare.iml	(date 1753871276286)
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="WEB_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$">
++      <excludeFolder url="file://$MODULE_DIR$/.tmp" />
++      <excludeFolder url="file://$MODULE_DIR$/temp" />
++      <excludeFolder url="file://$MODULE_DIR$/tmp" />
++    </content>
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file

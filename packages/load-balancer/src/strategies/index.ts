@@ -1,20 +1,18 @@
-import { isAccountAvailable, TIME_CONSTANTS } from "@ccflare/core";
-import { Logger } from "@ccflare/logger";
 import type {
 	Account,
 	LoadBalancingStrategy,
 	RequestMeta,
 	StrategyStore,
-} from "@ccflare/types";
+} from "@ccflare/core";
+import { isAccountAvailable } from "@ccflare/core";
+import { Logger } from "@ccflare/logger";
 
 export class SessionStrategy implements LoadBalancingStrategy {
 	private sessionDurationMs: number;
 	private store: StrategyStore | null = null;
 	private log = new Logger("SessionStrategy");
 
-	constructor(
-		sessionDurationMs: number = TIME_CONSTANTS.SESSION_DURATION_DEFAULT,
-	) {
+	constructor(sessionDurationMs: number = 5 * 60 * 60 * 1000) {
 		this.sessionDurationMs = sessionDurationMs;
 	}
 

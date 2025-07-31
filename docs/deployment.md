@@ -5,8 +5,6 @@
 ccflare is a load balancer proxy for Claude API accounts that can be deployed in various configurations, from simple local development to production-grade distributed systems. This document covers all deployment options, from single-instance setups to scalable architectures.
 
 > **Recent Updates**: ccflare now includes a Terminal User Interface (TUI) for interactive monitoring and management, alongside the web dashboard. The async database writer improves performance for high-throughput scenarios.
-> 
-> **Important**: ccflare uses an integrated binary that combines the TUI, CLI commands, and server functionality. The main executable `ccflare` provides all functionality through command-line flags.
 
 ## Table of Contents
 
@@ -58,9 +56,8 @@ graph TB
 ### Prerequisites
 
 - Bun runtime (>= 1.2.8)
-- SQLite (included with Bun - no external database setup required)
+- SQLite (included with Bun)
 - Git
-- Node.js compatible system (Linux, macOS, Windows)
 
 ### Quick Start
 
@@ -72,9 +69,6 @@ cd ccflare
 # Install dependencies
 bun install
 
-# Build the project (dashboard and TUI)
-bun run build
-
 # Start ccflare (TUI + Server combined)
 bun run ccflare
 
@@ -82,14 +76,14 @@ bun run ccflare
 # Terminal UI only
 bun run tui
 
-# Server only (without TUI)
+# Server only
 bun run server
 
-# Server with hot-reload (development)
+# Server with hot-reload
 bun run dev:server
 
 # In another terminal, add Claude accounts
-bun run ccflare --add-account myaccount
+bun cli add myaccount
 ```
 
 ### Development Configuration
@@ -100,6 +94,7 @@ export PORT=8080
 export LB_STRATEGY=session  # Only 'session' strategy is supported
 export LOG_LEVEL=DEBUG
 export LOG_FORMAT=pretty  # Options: pretty, json
+export CF_STREAM_BODY_MAX_BYTES=262144  # 256KB default
 
 # Start with custom config
 bun run ccflare
@@ -126,38 +121,40 @@ bun run ccflare
 Compile ccflare into a single executable for easy deployment:
 
 ```bash
-# Build all components (dashboard and TUI)
-bun run build
+# Build all components
+bun run build  # Builds dashboard and TUI
 
-# Build the main ccflare binary (includes TUI, CLI, and server)
-cd apps/tui
-bun build src/main.ts --compile --outfile dist/ccflare --target=bun
-
-# Build standalone server binary (optional, server-only deployment)
-cd ../server
+# Build the server binary
+cd apps/server
 bun build src/server.ts --compile --outfile dist/ccflare-server
 
-# Copy binary to deployment location
-cp apps/tui/dist/ccflare /opt/ccflare/
-# Make it executable
-chmod +x /opt/ccflare/ccflare
+# Build the CLI binary
+cd ../cli
+bun build src/cli.ts --compile --outfile dist/cli
+
+# Build the TUI binary (optional, for standalone TUI deployment)
+cd ../tui
+bun build src/main.ts --compile --outfile dist/ccflare-tui
+
+# Copy binaries to deployment location
+cp apps/server/dist/ccflare-server /opt/ccflare/
+cp apps/cli/dist/cli /opt/ccflare/ccflare-cli
+cp apps/tui/dist/ccflare-tui /opt/ccflare/  # Optional
 ```
 
 #### Binary Deployment Structure
 
 ```
 /opt/ccflare/
-├── ccflare             # Main binary (TUI + CLI + Server)
+├── ccflare-server      # Main server binary
+├── ccflare-cli         # CLI tool binary
+├── ccflare-tui         # TUI binary (optional)
 ├── config/
-│   └── config.json     # Configuration (optional)
+│   └── ccflare.json    # Configuration
 └── data/
-    ├── ccflare.db      # SQLite database
-    └── logs/           # Log files (if configured)
+    ├── claude-accounts.db  # SQLite database
+    └── logs/               # Log files
 ```
-
-**Note**: The configuration and database are automatically created in platform-specific directories:
-- **Linux/macOS**: `~/.config/ccflare/`
-- **Windows**: `%LOCALAPPDATA%\ccflare\` or `%APPDATA%\ccflare\`
 
 ### Process Management
 
@@ -172,8 +169,7 @@ cat > ecosystem.config.js << 'EOF'
 module.exports = {
   apps: [{
     name: 'ccflare',
-    script: '/opt/ccflare/ccflare',
-    args: '--serve',
+    script: '/opt/ccflare/ccflare-server',
     instances: 1,
     exec_mode: 'fork',
     env: {
@@ -181,11 +177,8 @@ module.exports = {
       LB_STRATEGY: 'session',
       LOG_LEVEL: 'INFO',
       LOG_FORMAT: 'json',
-      CLIENT_ID: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
-      SESSION_DURATION_MS: 18000000,
-      RETRY_ATTEMPTS: 3,
-      RETRY_DELAY_MS: 1000,
-      RETRY_BACKOFF: 2
+      CF_STREAM_BODY_MAX_BYTES: 262144,
+      ccflare_CONFIG_PATH: '/opt/ccflare/config/ccflare.json'
     },
     error_file: '/opt/ccflare/data/logs/error.log',
     out_file: '/opt/ccflare/data/logs/out.log',
@@ -221,7 +214,7 @@ Type=simple
 User=ccflare
 Group=ccflare
 WorkingDirectory=/opt/ccflare
-ExecStart=/opt/ccflare/ccflare --serve
+ExecStart=/opt/ccflare/ccflare-server
 Restart=always
 RestartSec=5
 
@@ -230,11 +223,8 @@ Environment="PORT=8080"
 Environment="LB_STRATEGY=session"
 Environment="LOG_LEVEL=INFO"
 Environment="LOG_FORMAT=json"
-Environment="CLIENT_ID=9d1c250a-e61b-44d9-88ed-5944d1962f5e"
-Environment="SESSION_DURATION_MS=18000000"
-Environment="RETRY_ATTEMPTS=3"
-Environment="RETRY_DELAY_MS=1000"
-Environment="RETRY_BACKOFF=2"
+Environment="CF_STREAM_BODY_MAX_BYTES=262144"
+Environment="ccflare_CONFIG_PATH=/opt/ccflare/config/ccflare.json"
 
 # Security
 NoNewPrivileges=true
@@ -264,7 +254,7 @@ sudo systemctl start ccflare
 
 ## Docker Deployment
 
-> **Important**: Docker files are not included in the repository. The configurations below are examples/templates that you can use as a starting point for creating your own Docker deployment.
+> **Note**: The Docker configuration below is a template. Docker files are not included in the repository and need to be created based on your specific requirements.
 
 ### Example Dockerfile
 
@@ -297,12 +287,14 @@ RUN apt-get update && apt-get install -y \
 # Create user
 RUN useradd -r -s /bin/false ccflare
 
-# Copy binary and dashboard
-COPY --from=builder /app/apps/tui/dist/ccflare /usr/local/bin/ccflare
+# Copy binaries
+COPY --from=builder /app/apps/server/dist/ccflare-server /usr/local/bin/
+COPY --from=builder /app/apps/cli/dist/cli /usr/local/bin/ccflare-cli
+COPY --from=builder /app/apps/tui/dist/ccflare-tui /usr/local/bin/
 COPY --from=builder /app/packages/dashboard-web/dist /opt/ccflare/dashboard
 
 # Set permissions
-RUN chmod +x /usr/local/bin/ccflare
+RUN chmod +x /usr/local/bin/ccflare-*
 
 # Create data directories
 RUN mkdir -p /data /config && chown -R ccflare:ccflare /data /config
@@ -320,7 +312,7 @@ VOLUME ["/data", "/config"]
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD ["/usr/local/bin/ccflare-server", "health"] || exit 1
 
-ENTRYPOINT ["/usr/local/bin/ccflare", "--serve"]
+ENTRYPOINT ["/usr/local/bin/ccflare-server"]
 ```
 
 ### Example Docker Compose
@@ -340,11 +332,7 @@ services:
       - LB_STRATEGY=session
       - LOG_LEVEL=INFO
       - LOG_FORMAT=json
-      - CLIENT_ID=9d1c250a-e61b-44d9-88ed-5944d1962f5e
-      - SESSION_DURATION_MS=18000000
-      - RETRY_ATTEMPTS=3
-      - RETRY_DELAY_MS=1000
-      - RETRY_BACKOFF=2
+      - CF_STREAM_BODY_MAX_BYTES=262144
     volumes:
       - ./data:/data
       - ./config:/config
@@ -730,20 +718,34 @@ sysctl -p
 
 ### Application Tuning
 
-```json
-// ~/.config/ccflare/config.json (or platform-specific location)
+```javascript
+// config/production.json
 {
-  "lb_strategy": "session",
-  "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
-  "retry_attempts": 3,
-  "retry_delay_ms": 1000,
-  "retry_backoff": 2,
-  "session_duration_ms": 18000000,  // 5 hours
-  "port": 8080
+  "server": {
+    "port": 8080,
+    "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+    "session_duration_ms": 18000000,  // 5 hours
+    "stream_body_max_bytes": 262144,  // 256KB
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000,
+    "retry_backoff": 2
+  },
+  "database": {
+    "walMode": true,
+    "journalMode": "WAL",
+    "synchronous": "NORMAL",
+    "cacheSize": -20000, // 20MB cache
+    "busyTimeout": 5000
+  },
+  "proxy": {
+    "timeout": 300000, // 5 minutes
+    "retries": 3,
+    "retryDelay": 1000,
+    "keepAlive": true,
+    "keepAliveMsecs": 1000,
+    "maxSockets": 256
+  }
 }
-```
-
-**Note**: These settings can also be configured via environment variables, which take precedence over the config file.
 ```
 
 ### Database Optimization
@@ -808,27 +810,12 @@ graph TB
     APP3 --> CONSUL
 ```
 
-### Database Considerations
-
-ccflare uses SQLite by default, which is suitable for most single-instance deployments. The database is automatically created and managed in the platform-specific configuration directory.
-
-#### SQLite Optimization (Default)
-
-```sql
--- These optimizations are automatically applied by ccflare
-PRAGMA journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
-PRAGMA cache_size = -20000;  -- 20MB cache
-PRAGMA temp_store = MEMORY;
-PRAGMA mmap_size = 268435456;
-```
-
 ### Database Migration for Scale
 
-When scaling beyond a single instance, you may need to migrate from SQLite to a shared database like PostgreSQL:
+When scaling beyond a single instance, migrate from SQLite to PostgreSQL:
 
 ```sql
--- PostgreSQL schema (example for future implementation)
+-- PostgreSQL schema
 CREATE TABLE accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) UNIQUE NOT NULL,
@@ -1073,12 +1060,8 @@ healthcheck:
 
 1. **Database Lock Errors**
    ```bash
-   # Find the actual database location
-   # Linux/macOS:
-   sqlite3 ~/.config/ccflare/ccflare.db "PRAGMA journal_mode=WAL;"
-   
-   # Windows:
-   sqlite3 %LOCALAPPDATA%\ccflare\ccflare.db "PRAGMA journal_mode=WAL;"
+   # Enable WAL mode
+   sqlite3 /opt/ccflare/data/claude-accounts.db "PRAGMA journal_mode=WAL;"
    ```
 
 2. **High Memory Usage**
@@ -1098,9 +1081,9 @@ healthcheck:
 4. **Rate Limit Issues**
    ```bash
    # Check account status
-   ccflare --list
-   # Reset statistics
-   ccflare --reset-stats
+   /opt/ccflare/ccflare-cli list
+   # Reset rate limits
+   /opt/ccflare/ccflare-cli reset-stats
    ```
 
 ## Maintenance
@@ -1108,19 +1091,18 @@ healthcheck:
 ### Regular Tasks
 
 ```bash
-# Daily: Check recent logs
-ccflare --logs 100 | grep ERROR
+# Daily: Check logs for errors
+grep ERROR /opt/ccflare/data/logs/*.log | tail -50
 
 # Weekly: Database maintenance
-# Linux/macOS:
-sqlite3 ~/.config/ccflare/ccflare.db "VACUUM;"
-sqlite3 ~/.config/ccflare/ccflare.db "ANALYZE;"
+sqlite3 /opt/ccflare/data/claude-accounts.db "VACUUM;"
+sqlite3 /opt/ccflare/data/claude-accounts.db "ANALYZE;"
 
-# Monthly: Clean old request history
-ccflare --clear-history
+# Monthly: Clean old logs
+find /opt/ccflare/data/logs -name "*.log" -mtime +30 -delete
 
-# Quarterly: Update dependencies (if running from source)
-cd /path/to/ccflare
+# Quarterly: Update dependencies
+cd /opt/ccflare
 bun update
 ```
 
@@ -1133,18 +1115,11 @@ bun update
 BACKUP_DIR="/backup/ccflare/$(date +%Y%m%d)"
 mkdir -p "$BACKUP_DIR"
 
-# Determine config directory based on OS
-if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    CONFIG_DIR="$HOME/.config/ccflare"
-elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
-    CONFIG_DIR="$LOCALAPPDATA/ccflare"
-else
-    CONFIG_DIR="$HOME/.config/ccflare"  # Default fallback
-fi
+# Backup database
+sqlite3 /opt/ccflare/data/claude-accounts.db ".backup $BACKUP_DIR/claude-accounts.db"
 
-# Backup database and config
-sqlite3 "$CONFIG_DIR/ccflare.db" ".backup $BACKUP_DIR/ccflare.db"
-cp "$CONFIG_DIR/config.json" "$BACKUP_DIR/" 2>/dev/null || true
+# Backup configuration
+cp -r /opt/ccflare/config "$BACKUP_DIR/"
 
 # Compress
 tar -czf "$BACKUP_DIR.tar.gz" "$BACKUP_DIR"
@@ -1161,10 +1136,9 @@ find /backup/ccflare -name "*.tar.gz" -mtime +30 -delete
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | 8080 | Server port |
-| `LB_STRATEGY` | session | Load balancing strategy (only 'session' is supported) |
+| `LB_STRATEGY` | session | Load balancing strategy: Only `session` is supported |
 | `LOG_LEVEL` | INFO | Logging level: `DEBUG`, `INFO`, `WARN`, `ERROR` |
 | `LOG_FORMAT` | pretty | Log format: `pretty` (human-readable) or `json` (structured) |
-| `ccflare_DEBUG` | 0 | Enable debug mode (1/0) - enables console output |
 
 ### Advanced Configuration
 
@@ -1172,11 +1146,11 @@ find /backup/ccflare -name "*.tar.gz" -mtime +30 -delete
 |----------|---------|-------------|
 | `CLIENT_ID` | 9d1c250a-e61b-44d9-88ed-5944d1962f5e | OAuth client ID for authentication |
 | `SESSION_DURATION_MS` | 18000000 | Session duration in milliseconds (5 hours) |
+| `CF_STREAM_BODY_MAX_BYTES` | 262144 | Maximum size for streaming response bodies (256KB) |
 | `RETRY_ATTEMPTS` | 3 | Number of retry attempts for failed requests |
 | `RETRY_DELAY_MS` | 1000 | Initial delay between retries in milliseconds |
 | `RETRY_BACKOFF` | 2 | Backoff multiplier for exponential retry delays |
 | `ccflare_CONFIG_PATH` | Platform-specific | Path to configuration file |
-| `ccflare_DB_PATH` | Platform-specific | Path to SQLite database file |
 
 ### Configuration File
 
@@ -1190,7 +1164,8 @@ ccflare also supports a JSON configuration file that takes precedence over envir
   "retry_delay_ms": 2000,
   "retry_backoff": 1.5,
   "session_duration_ms": 7200000,
-  "port": 3000
+  "port": 3000,
+  "stream_body_max_bytes": 524288
 }
 ```
 
@@ -1204,12 +1179,11 @@ ccflare is designed to be flexible and scalable, supporting everything from simp
 
 ### Key Features Summary
 
-- **Integrated Binary**: Single executable combining TUI, CLI, and server functionality
 - **Interactive TUI**: Monitor and manage your deployment in real-time
-- **Web Dashboard**: Access analytics and logs through a modern web interface  
+- **Web Dashboard**: Access analytics and logs through a modern web interface
 - **Async Database Writer**: Improved performance for high-throughput scenarios
-- **Session-based Load Balancing**: Maintains session affinity for optimal performance
-- **Binary Compilation**: Deploy as standalone executable without runtime dependencies
+- **Multiple Load Balancing Strategies**: Choose the best strategy for your use case
+- **Binary Compilation**: Deploy as standalone executables without runtime dependencies
 
 ### Additional Resources
 
@@ -1226,17 +1200,15 @@ ccflare includes a powerful Terminal User Interface for interactive monitoring a
 ### Starting the TUI
 
 ```bash
-# Start ccflare in interactive mode (TUI + Server)
-ccflare
-
-# Or from source:
+# Start TUI with server (recommended)
 bun run ccflare
 
-# Start server only (no TUI)
-ccflare --serve
+# Start TUI separately (connects to existing server)
+bun run tui
 
-# View help for all available commands
-ccflare --help
+# Build TUI as standalone binary
+cd apps/tui
+bun build src/main.ts --compile --outfile dist/ccflare-tui
 ```
 
 ### TUI Features
@@ -1273,14 +1245,14 @@ ccflare --help
 | `Esc` | Close dialog/cancel |
 | `q` / `Ctrl+C` | Quit TUI |
 
-### Remote API Connection
+### Remote TUI Connection
 
-The ccflare binary can connect to a remote API server for distributed deployments:
+The TUI can connect to a remote ccflare server:
 
 ```bash
 # Set API URL for remote connection
 export ccflare_API_URL=https://ccflare.example.com
-ccflare --list  # Will query the remote server
+bun run tui
 ```
 
 ### TUI Configuration

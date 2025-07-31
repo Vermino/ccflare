@@ -2,17 +2,11 @@ import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
-	DEFAULT_AGENT_MODEL,
 	DEFAULT_STRATEGY,
 	isValidStrategy,
-	NETWORK,
 	type StrategyName,
-	TIME_CONSTANTS,
 } from "@ccflare/core";
-import { Logger } from "@ccflare/logger";
 import { resolveConfigPath } from "./paths";
-
-const log = new Logger("Config");
 
 export interface RuntimeConfig {
 	clientId: string;
@@ -29,7 +23,6 @@ export interface ConfigData {
 	retry_backoff?: number;
 	session_duration_ms?: number;
 	port?: number;
-	default_agent_model?: string;
 	[key: string]: string | number | boolean | undefined;
 }
 
@@ -49,7 +42,7 @@ export class Config extends EventEmitter {
 				const content = readFileSync(this.configPath, "utf8");
 				this.data = JSON.parse(content) as ConfigData;
 			} catch (error) {
-				log.error(`Failed to parse config file: ${error}`);
+				console.error(`Failed to parse config file: ${error}`);
 				this.data = {};
 			}
 		} else {
@@ -70,7 +63,7 @@ export class Config extends EventEmitter {
 			const content = JSON.stringify(this.data, null, 2);
 			writeFileSync(this.configPath, content, "utf8");
 		} catch (error) {
-			log.error(`Failed to save config file: ${error}`);
+			console.error(`Failed to save config file: ${error}`);
 		}
 	}
 
@@ -122,33 +115,11 @@ export class Config extends EventEmitter {
 		this.set("lb_strategy", strategy);
 	}
 
-	getDefaultAgentModel(): string {
-		// First check environment variable
-		const envModel = process.env.DEFAULT_AGENT_MODEL;
-		if (envModel) {
-			return envModel;
-		}
-
-		// Then check config file
-		const configModel = this.data.default_agent_model;
-		if (configModel) {
-			return configModel;
-		}
-
-		// Default to the centralized default agent model
-		return DEFAULT_AGENT_MODEL;
-	}
-
-	setDefaultAgentModel(model: string): void {
-		this.set("default_agent_model", model);
-	}
-
 	getAllSettings(): Record<string, string | number | boolean | undefined> {
 		// Include current strategy (which might come from env)
 		return {
 			...this.data,
 			lb_strategy: this.getStrategy(),
-			default_agent_model: this.getDefaultAgentModel(),
 		};
 	}
 
@@ -158,11 +129,11 @@ export class Config extends EventEmitter {
 			clientId: "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
 			retry: {
 				attempts: 3,
-				delayMs: TIME_CONSTANTS.RETRY_DELAY_DEFAULT,
+				delayMs: 1000,
 				backoff: 2,
 			},
-			sessionDurationMs: TIME_CONSTANTS.SESSION_DURATION_DEFAULT,
-			port: NETWORK.DEFAULT_PORT,
+			sessionDurationMs: 5 * 60 * 60 * 1000, // 5 hours
+			port: 8080,
 		};
 
 		// Override with environment variables if present

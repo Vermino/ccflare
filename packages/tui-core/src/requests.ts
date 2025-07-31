@@ -1,7 +1,27 @@
 import { DatabaseFactory } from "@ccflare/database";
-import type { RequestPayload } from "@ccflare/types";
 
-export type { RequestPayload };
+export interface RequestPayload {
+	id: string;
+	request: {
+		headers: Record<string, string>;
+		body: string | null;
+	};
+	response: {
+		status: number;
+		headers: Record<string, string>;
+		body: string | null;
+	} | null;
+	error?: string;
+	meta: {
+		accountId?: string;
+		accountName?: string;
+		retry?: number;
+		timestamp: number;
+		success?: boolean;
+		rateLimited?: boolean;
+		accountsAttempted?: number;
+	};
+}
 
 export interface RequestSummary {
 	id: string;

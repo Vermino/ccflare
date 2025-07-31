@@ -29,7 +29,7 @@ Configuration is managed through the `@ccflare/config` package, which provides a
 Configuration values are resolved in the following order (highest to lowest priority):
 
 1. **Environment variables** - Always take precedence when set
-2. **Configuration file** - Values from `~/.config/ccflare/ccflare.json` (or custom path)
+2. **Configuration file** - Values from `~/.ccflare/config.json` (or custom path)
 3. **Default values** - Built-in defaults when no other value is specified
 
 ### Special Cases
@@ -55,7 +55,8 @@ The configuration file is stored at:
   "retry_delay_ms": 1000,
   "retry_backoff": 2,
   "session_duration_ms": 18000000,
-  "port": 8080
+  "port": 8080,
+  "stream_body_max_bytes": 262144
 }
 ```
 
@@ -72,6 +73,7 @@ The configuration file is stored at:
 | `retry_backoff` | number | `2` | Exponential backoff multiplier for retry delays |
 | `session_duration_ms` | number | `18000000` (5 hours) | Session persistence duration in milliseconds |
 | `port` | number | `8080` | HTTP server port |
+| `stream_body_max_bytes` | number | `262144` (256KB) | Maximum size for streaming response bodies in analytics capture |
 
 ### Load Balancing Strategy
 
@@ -95,29 +97,26 @@ The configuration file is stored at:
 
 | Environment Variable | Config Field | Type | Example |
 |---------------------|--------------|------|---------|
-| `LB_STRATEGY` | `lb_strategy` | string | `LB_STRATEGY=session` |
+| `LB_STRATEGY` | `lb_strategy` | string | `LB_STRATEGY=round-robin` |
 | `CLIENT_ID` | `client_id` | string | `CLIENT_ID=your-client-id` |
 | `RETRY_ATTEMPTS` | `retry_attempts` | number | `RETRY_ATTEMPTS=5` |
 | `RETRY_DELAY_MS` | `retry_delay_ms` | number | `RETRY_DELAY_MS=2000` |
 | `RETRY_BACKOFF` | `retry_backoff` | number | `RETRY_BACKOFF=1.5` |
 | `SESSION_DURATION_MS` | `session_duration_ms` | number | `SESSION_DURATION_MS=3600000` |
 | `PORT` | `port` | number | `PORT=3000` |
+| `CF_STREAM_BODY_MAX_BYTES` | `stream_body_max_bytes` | number | `CF_STREAM_BODY_MAX_BYTES=524288` |
 | `ccflare_CONFIG_PATH` | - | string | `ccflare_CONFIG_PATH=/etc/ccflare.json` |
 
 ### Additional Environment Variables
 
-These environment variables are not stored in the configuration file and must be set via environment:
-
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `LOG_LEVEL` | Set logging verbosity (DEBUG, INFO, WARN, ERROR) | `INFO` | `LOG_LEVEL=DEBUG` |
-| `LOG_FORMAT` | Set log output format (pretty, json) | `pretty` | `LOG_FORMAT=json` |
-| `ccflare_DEBUG` | Enable debug mode with console output | - | `ccflare_DEBUG=1` |
-| `ccflare_DB_PATH` | Custom database file path | Platform-specific | `ccflare_DB_PATH=/var/lib/ccflare/db.sqlite` |
-| `CF_PRICING_REFRESH_HOURS` | Hours between pricing data refreshes | `24` | `CF_PRICING_REFRESH_HOURS=12` |
-| `CF_PRICING_OFFLINE` | Disable online pricing updates | - | `CF_PRICING_OFFLINE=1` |
-| `CF_STREAM_USAGE_BUFFER_KB` | Stream usage buffer size in KB | `64` | `CF_STREAM_USAGE_BUFFER_KB=128` |
-| `CF_STREAM_TIMEOUT_MS` | Stream processing timeout in milliseconds | `60000` (1 minute) | `CF_STREAM_TIMEOUT_MS=120000` |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `LOG_LEVEL` | Set logging verbosity (DEBUG, INFO, WARN, ERROR) | `LOG_LEVEL=DEBUG` |
+| `LOG_FORMAT` | Set log output format (pretty, json) | `LOG_FORMAT=json` |
+| `ccflare_DEBUG` | Enable debug mode with console output | `ccflare_DEBUG=1` |
+| `ccflare_DB_PATH` | Custom database file path | `ccflare_DB_PATH=/var/lib/ccflare/db.sqlite` |
+| `CF_PRICING_REFRESH_HOURS` | Hours between pricing data refreshes | `CF_PRICING_REFRESH_HOURS=12` |
+| `CF_PRICING_OFFLINE` | Disable online pricing updates | `CF_PRICING_OFFLINE=1` |
 
 ## Runtime Configuration API
 
@@ -138,8 +137,6 @@ Response:
   "sessionDurationMs": 18000000
 }
 ```
-
-Note: The API response uses camelCase (`sessionDurationMs`) while the configuration file uses snake_case (`session_duration_ms`).
 
 #### Get Current Strategy
 ```http
@@ -178,10 +175,8 @@ GET /api/strategies
 
 Response:
 ```json
-["session"]
+["least-requests", "round-robin", "session", "weighted", "weighted-round-robin"]
 ```
-
-⚠️ **NOTE**: Only the `"session"` strategy is available in ccflare. Other strategies (round-robin, least-requests, weighted) have been removed from the codebase as they can trigger Claude's anti-abuse systems and result in account bans.
 
 ### Runtime Update Behavior
 
@@ -198,21 +193,23 @@ Optimized for maximum request throughput with minimal overhead:
 
 ```json
 {
-  "lb_strategy": "session",
+  "lb_strategy": "least-requests",
   "retry_attempts": 2,
   "retry_delay_ms": 500,
   "retry_backoff": 1.5,
   "session_duration_ms": 300000,
-  "port": 8080
+  "port": 8080,
+  "stream_body_max_bytes": 131072
 }
 ```
 
 Environment variables:
 ```bash
-export LB_STRATEGY=session
+export LB_STRATEGY=least-requests
 export RETRY_ATTEMPTS=2
 export RETRY_DELAY_MS=500
 export SESSION_DURATION_MS=300000  # 5 minutes
+export CF_STREAM_BODY_MAX_BYTES=131072  # 128KB for faster streaming
 export LOG_LEVEL=WARN  # Reduce logging overhead
 ```
 
@@ -227,7 +224,8 @@ Ideal for maintaining conversation context with Claude:
   "retry_delay_ms": 1000,
   "retry_backoff": 2,
   "session_duration_ms": 21600000,
-  "port": 8080
+  "port": 8080,
+  "stream_body_max_bytes": 262144
 }
 ```
 
@@ -245,12 +243,13 @@ Configuration for local development and debugging:
 
 ```json
 {
-  "lb_strategy": "session",
+  "lb_strategy": "round-robin",
   "retry_attempts": 5,
   "retry_delay_ms": 2000,
   "retry_backoff": 2,
   "session_duration_ms": 3600000,
-  "port": 3000
+  "port": 3000,
+  "stream_body_max_bytes": 524288
 }
 ```
 
@@ -263,28 +262,20 @@ export ccflare_DEBUG=1
 export RETRY_ATTEMPTS=5
 ```
 
-### Production Setup
+### Premium Account Priority Setup
 
-Recommended configuration for production deployments:
+Leverage weighted strategies for tier-based routing:
 
 ```json
 {
-  "lb_strategy": "session",
+  "lb_strategy": "weighted-round-robin",
   "retry_attempts": 3,
   "retry_delay_ms": 1000,
   "retry_backoff": 2,
   "session_duration_ms": 7200000,
-  "port": 8080
+  "port": 8080,
+  "stream_body_max_bytes": 262144
 }
-```
-
-Environment variables:
-```bash
-export LB_STRATEGY=session
-export SESSION_DURATION_MS=7200000  # 2 hours
-export LOG_LEVEL=INFO
-export LOG_FORMAT=json
-export CF_PRICING_OFFLINE=1  # Reduce external API calls
 ```
 
 ## Configuration Validation
@@ -297,6 +288,7 @@ ccflare performs validation on:
 2. **Numeric values**: Parsed and validated as integers/floats
 3. **Port ranges**: Should be valid port numbers (1-65535)
 4. **File permissions**: Config directory is created with appropriate permissions
+5. **Byte sizes**: Stream body max bytes must be a positive integer
 
 ### Validation Errors
 
@@ -341,7 +333,7 @@ If migrating from environment variables to file-based configuration:
 
 1. **Configuration location**: Move from `~/.ccflare/config.json` to platform-specific paths
 2. **Field naming**: Update any deprecated field names (none currently deprecated)
-3. **Strategy names**: Only `"session"` strategy is available (must be lowercase)
+3. **Strategy names**: Ensure using kebab-case strategy names (e.g., `"round-robin"` not `"round_robin"`)
 
 ### Configuration Backup
 

@@ -1,4 +1,4 @@
-import type { Account } from "@ccflare/types";
+import type { Account } from "@ccflare/core";
 
 export interface TokenRefreshResult {
 	accessToken: string;
@@ -76,7 +76,7 @@ export interface Provider {
 }
 
 // OAuth-specific types
-export interface OAuthProviderConfig {
+export interface OAuthConfig {
 	authorizeUrl: string;
 	tokenUrl: string;
 	clientId: string;
@@ -86,13 +86,13 @@ export interface OAuthProviderConfig {
 }
 
 export interface OAuthProvider {
-	getOAuthConfig(mode?: string): OAuthProviderConfig;
+	getOAuthConfig(mode?: string): OAuthConfig;
 	exchangeCode(
 		code: string,
 		verifier: string,
-		config: OAuthProviderConfig,
+		config: OAuthConfig,
 	): Promise<TokenResult>;
-	generateAuthUrl(config: OAuthProviderConfig, pkce: PKCEChallenge): string;
+	generateAuthUrl(config: OAuthConfig, pkce: PKCEChallenge): string;
 }
 
 export interface PKCEChallenge {

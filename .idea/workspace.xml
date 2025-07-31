@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="c29293ad-210e-4d81-9506-1976dc3a4ba1" name="Changes" comment="fubar?">
+      <change afterPath="$PROJECT_DIR$/apps/cli/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/cli/src/cli.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/tui/src/components/EnhancedRequestsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/tui/src/components/EnhancedStatsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/packages/core/src/types.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/packages/tui-core/src/tui-adapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/server/src/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/server/src/server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/AccountsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/AccountsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/RequestsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/RequestsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/StatsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/StatsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/TokenUsageDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/TokenUsageDisplay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/main.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bun.lock" beforeDir="false" afterPath="$PROJECT_DIR$/bun.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/cli.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/cli.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/configuration.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/configuration.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/deployment.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/deployment.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/index.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/load-balancing.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/load-balancing.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/troubleshooting.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/troubleshooting.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/commands/account.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/commands/account.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/config/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/config/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/strategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/AnalyticsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/AnalyticsTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/OverviewTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/OverviewTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/accounts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/accounts.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/analytics.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/analytics.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/health.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/health.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/logs-history.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/logs-history.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/logs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/logs.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/requests.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/requests.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/stats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/stats.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/load-balancer/src/strategies/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/load-balancer/src/strategies/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/logger/src/file-writer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/logger/src/file-writer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/base.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/base.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/provider.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/provider.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/post-processor.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/post-processor.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/proxy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/proxy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/response-handler.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/response-handler.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/accounts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/accounts.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/requests.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/requests.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/stats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/stats.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="feature/load-balancing-strategies" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Vermino&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/snipeship/ccflare.git&quot;,
+    &quot;accountId&quot;: &quot;4a2adc61-4aea-442d-9aa4-a575c459b5d1&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="30ZQcHSoiYaZz2mJCL5ehPoXUaC" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "Merging main",
+    "last_opened_file_path": "//wsl.localhost/Ubuntu/home/jesse/projects/website/wp-victims",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Users\\jesse\\WebstormProjects\\ccflare\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-WS-241.19416.2" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c29293ad-210e-4d81-9506-1976dc3a4ba1" name="Changes" comment="" />
+      <created>1753832692481</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1753832692481</updated>
+      <workItem from="1753832693594" duration="3665000" />
+      <workItem from="1753870853978" duration="811000" />
+      <workItem from="1753871680259" duration="157000" />
+      <workItem from="1753871840971" duration="53000" />
+      <workItem from="1753871896991" duration="2533000" />
+      <workItem from="1754003084098" duration="1947000" />
+    </task>
+    <task id="LOCAL-00001" summary="fubar?">
+      <option name="closed" value="true" />
+      <created>1753871621999</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1753871621999</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="fubar?" />
+    <option name="LAST_COMMIT_MESSAGE" value="fubar?" />
+  </component>
+</project>

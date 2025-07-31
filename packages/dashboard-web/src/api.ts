@@ -1,118 +1,171 @@
-import { HttpClient, HttpError } from "@ccflare/http-common";
-import type {
-	AccountResponse,
-	Agent,
-	AgentUpdatePayload,
-	AgentWorkspace,
-	AnalyticsResponse,
-	LogEvent,
-	RequestPayload,
-	RequestResponse,
-	StatsWithAccounts,
-} from "@ccflare/types";
-import { API_LIMITS, API_TIMEOUT } from "./constants";
+import type { AnalyticsResponse } from "@ccflare/http-api";
 
-// Re-export types with dashboard-specific aliases for backward compatibility
-export type Account = AccountResponse;
-export type Stats = StatsWithAccounts;
-export type LogEntry = LogEvent;
-export type RequestSummary = RequestResponse;
-
-// Re-export types directly
-export type {
-	Agent,
-	AgentWorkspace,
-	RequestPayload,
-	RequestResponse,
-} from "@ccflare/types";
-
-// Agent response interface
-export interface AgentsResponse {
-	agents: Agent[];
-	globalAgents: Agent[];
-	workspaceAgents: Agent[];
-	workspaces: AgentWorkspace[];
+export interface Account {
+	id: string;
+	name: string;
+	provider: string;
+	requestCount: number;
+	totalRequests: number;
+	lastUsed: string | null;
+	created: string;
+	tier: number;
+	paused: boolean;
+	tokenStatus: string;
+	rateLimitStatus: string;
+	rateLimitReset: string | null;
+	rateLimitRemaining: number | null;
+	sessionInfo: string | null;
 }
 
-class API extends HttpClient {
-	constructor() {
-		super({
-			baseUrl: "",
-			defaultHeaders: {
-				"Content-Type": "application/json",
-			},
-			timeout: API_TIMEOUT,
-			retries: 1,
-		});
-	}
+export interface Stats {
+	totalRequests: number;
+	successRate: number;
+	activeAccounts: number;
+	avgResponseTime: number;
+	totalTokens: number;
+	totalCostUsd: number;
+	topModels: Array<{ model: string; count: number }>;
+	accounts: Array<{
+		name: string;
+		requestCount: number;
+		successRate: number;
+	}>;
+	recentErrors: string[];
+}
+
+export interface LogEntry {
+	ts: number;
+	level: string;
+	msg: string;
+}
+
+export interface RequestPayload {
+	id: string;
+	request: {
+		headers: Record<string, string>;
+		body: string | null;
+	};
+	response: {
+		status: number;
+		headers: Record<string, string>;
+		body: string | null;
+	} | null;
+	error?: string;
+	meta: {
+		accountId?: string;
+		accountName?: string;
+		retry?: number;
+		timestamp: number;
+		success?: boolean;
+		rateLimited?: boolean;
+		accountsAttempted?: number;
+	};
+}
+
+export interface RequestSummary {
+	id: string;
+	timestamp: string;
+	method: string;
+	path: string;
+	accountUsed: string | null;
+	statusCode: number | null;
+	success: boolean;
+	errorMessage: string | null;
+	responseTimeMs: number | null;
+	failoverAttempts: number;
+	model?: string;
+	promptTokens?: number;
+	completionTokens?: number;
+	totalTokens?: number;
+	costUsd?: number;
+	inputTokens?: number;
+	cacheReadInputTokens?: number;
+	cacheCreationInputTokens?: number;
+	outputTokens?: number;
+}
+
+class API {
+	private baseUrl = "";
 
 	async getStats(): Promise<Stats> {
-		return this.get<Stats>("/api/stats");
+		const res = await fetch(`${this.baseUrl}/api/stats`);
+		if (!res.ok) throw new Error("Failed to fetch stats");
+		return res.json() as Promise<Stats>;
 	}
 
 	async getAccounts(): Promise<Account[]> {
-		return this.get<Account[]>("/api/accounts");
+		const res = await fetch(`${this.baseUrl}/api/accounts`);
+		if (!res.ok) throw new Error("Failed to fetch accounts");
+		return res.json() as Promise<Account[]>;
 	}
 
 	async initAddAccount(data: {
 		name: string;
 		mode: "max" | "console";
 		tier: number;
-	}): Promise<{ authUrl: string; sessionId: string }> {
-		try {
-			return await this.post<{ authUrl: string; sessionId: string }>(
-				"/api/oauth/init",
-				data,
-			);
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
+	}): Promise<{ authUrl: string }> {
+		const res = await fetch(`${this.baseUrl}/api/accounts`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ ...data, step: "init" }),
+		});
+		if (!res.ok) {
+			const error = (await res.json()) as { error?: string };
+			throw new Error(error.error || "Failed to initialize account");
 		}
+		return res.json() as Promise<{ authUrl: string }>;
 	}
 
 	async completeAddAccount(data: {
-		sessionId: string;
+		name: string;
 		code: string;
 	}): Promise<{ message: string; mode: string; tier: number }> {
-		try {
-			return await this.post<{ message: string; mode: string; tier: number }>(
-				"/api/oauth/callback",
-				data,
-			);
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
+		const res = await fetch(`${this.baseUrl}/api/accounts`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ ...data, step: "callback" }),
+		});
+		if (!res.ok) {
+			const error = (await res.json()) as { error?: string };
+			throw new Error(error.error || "Failed to complete account setup");
 		}
+		return res.json() as Promise<{
+			message: string;
+			mode: string;
+			tier: number;
+		}>;
 	}
 
 	async removeAccount(name: string, confirm: string): Promise<void> {
-		try {
-			await this.delete(`/api/accounts/${name}`, {
-				body: JSON.stringify({ confirm }),
-			});
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
+		const res = await fetch(`${this.baseUrl}/api/accounts/${name}`, {
+			method: "DELETE",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ confirm }),
+		});
+		if (!res.ok) {
+			const error = (await res.json()) as {
+				error?: string;
+				confirmationRequired?: boolean;
+			};
+			throw new Error(error.error || "Failed to remove account");
 		}
 	}
 
 	async resetStats(): Promise<void> {
-		await this.post("/api/stats/reset");
+		const res = await fetch(`${this.baseUrl}/api/stats/reset`, {
+			method: "POST",
+		});
+		if (!res.ok) throw new Error("Failed to reset stats");
 	}
 
 	async getLogHistory(): Promise<LogEntry[]> {
-		return this.get<LogEntry[]>("/api/logs/history");
+		const res = await fetch(`${this.baseUrl}/api/logs/history`);
+		if (!res.ok) throw new Error("Failed to fetch log history");
+		return res.json() as Promise<LogEntry[]>;
 	}
 
-	// SSE streaming requires special handling, keep as-is
 	streamLogs(onLog: (log: LogEntry) => void): EventSource {
-		const eventSource = new EventSource(`/api/logs/stream`);
+		const eventSource = new EventSource(`${this.baseUrl}/api/logs/stream`);
 		eventSource.addEventListener("message", (event) => {
 			try {
 				const data = JSON.parse(event.data);
@@ -127,16 +180,18 @@ class API extends HttpClient {
 		return eventSource;
 	}
 
-	async getRequestsDetail(
-		limit: number = API_LIMITS.requestsDetail,
-	): Promise<RequestPayload[]> {
-		return this.get<RequestPayload[]>(`/api/requests/detail?limit=${limit}`);
+	async getRequestsDetail(limit = 100): Promise<RequestPayload[]> {
+		const res = await fetch(
+			`${this.baseUrl}/api/requests/detail?limit=${limit}`,
+		);
+		if (!res.ok) throw new Error("Failed to fetch detailed requests");
+		return res.json() as Promise<RequestPayload[]>;
 	}
 
-	async getRequestsSummary(
-		limit: number = API_LIMITS.requestsSummary,
-	): Promise<RequestSummary[]> {
-		return this.get<RequestSummary[]>(`/api/requests?limit=${limit}`);
+	async getRequestsSummary(limit = 50): Promise<RequestSummary[]> {
+		const res = await fetch(`${this.baseUrl}/api/requests?limit=${limit}`);
+		if (!res.ok) throw new Error("Failed to fetch request summaries");
+		return res.json() as Promise<RequestSummary[]>;
 	}
 
 	async getAnalytics(
@@ -147,7 +202,6 @@ class API extends HttpClient {
 			status?: "all" | "success" | "error";
 		},
 		mode: "normal" | "cumulative" = "normal",
-		modelBreakdown?: boolean,
 	): Promise<AnalyticsResponse> {
 		const params = new URLSearchParams({ range });
 
@@ -163,138 +217,57 @@ class API extends HttpClient {
 		if (mode === "cumulative") {
 			params.append("mode", "cumulative");
 		}
-		if (modelBreakdown) {
-			params.append("modelBreakdown", "true");
-		}
 
-		return this.get<AnalyticsResponse>(`/api/analytics?${params}`);
+		const res = await fetch(`${this.baseUrl}/api/analytics?${params}`);
+		if (!res.ok) throw new Error("Failed to fetch analytics data");
+		return res.json() as Promise<AnalyticsResponse>;
 	}
 
 	async pauseAccount(accountId: string): Promise<void> {
-		try {
-			await this.post(`/api/accounts/${accountId}/pause`);
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
+		const res = await fetch(`${this.baseUrl}/api/accounts/${accountId}/pause`, {
+			method: "POST",
+		});
+		if (!res.ok) {
+			const error = (await res.json()) as { error?: string };
+			throw new Error(error.error || "Failed to pause account");
 		}
 	}
 
 	async resumeAccount(accountId: string): Promise<void> {
-		try {
-			await this.post(`/api/accounts/${accountId}/resume`);
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
-		}
-	}
-
-	async renameAccount(
-		accountId: string,
-		newName: string,
-	): Promise<{ newName: string }> {
-		try {
-			const response = await this.post<{
-				success: boolean;
-				message: string;
-				newName: string;
-			}>(`/api/accounts/${accountId}/rename`, { name: newName });
-			return { newName: response.newName };
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
+		const res = await fetch(
+			`${this.baseUrl}/api/accounts/${accountId}/resume`,
+			{
+				method: "POST",
+			},
+		);
+		if (!res.ok) {
+			const error = (await res.json()) as { error?: string };
+			throw new Error(error.error || "Failed to resume account");
 		}
 	}
 
 	async getStrategy(): Promise<string> {
-		const data = await this.get<{ strategy: string }>("/api/config/strategy");
+		const res = await fetch(`${this.baseUrl}/api/config/strategy`);
+		if (!res.ok) throw new Error("Failed to fetch strategy");
+		const data = (await res.json()) as { strategy: string };
 		return data.strategy;
 	}
 
 	async listStrategies(): Promise<string[]> {
-		return this.get<string[]>("/api/strategies");
+		const res = await fetch(`${this.baseUrl}/api/strategies`);
+		if (!res.ok) throw new Error("Failed to list strategies");
+		return res.json() as Promise<string[]>;
 	}
 
 	async setStrategy(strategy: string): Promise<void> {
-		try {
-			await this.post("/api/config/strategy", { strategy });
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
-		}
-	}
-
-	async getAgents(): Promise<AgentsResponse> {
-		return await this.get<AgentsResponse>("/api/agents");
-	}
-
-	async updateAgentPreference(agentId: string, model: string): Promise<void> {
-		try {
-			await this.post(`/api/agents/${agentId}/preference`, { model });
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
-		}
-	}
-
-	async updateAgent(
-		agentId: string,
-		payload: AgentUpdatePayload,
-	): Promise<Agent> {
-		try {
-			const response = await this.patch<{ success: boolean; agent: Agent }>(
-				`/api/agents/${agentId}`,
-				payload,
-			);
-			return response.agent;
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
-		}
-	}
-
-	async getDefaultAgentModel(): Promise<string> {
-		const data = await this.get<{ model: string }>("/api/config/model");
-		return data.model;
-	}
-
-	async setDefaultAgentModel(model: string): Promise<void> {
-		try {
-			await this.post("/api/config/model", { model });
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
-		}
-	}
-
-	async setBulkAgentPreferences(
-		model: string,
-	): Promise<{ updatedCount: number }> {
-		try {
-			const response = await this.post<{
-				success: boolean;
-				updatedCount: number;
-				model: string;
-			}>("/api/agents/bulk-preference", { model });
-			return { updatedCount: response.updatedCount };
-		} catch (error) {
-			if (error instanceof HttpError) {
-				throw new Error(error.message);
-			}
-			throw error;
+		const res = await fetch(`${this.baseUrl}/api/config/strategy`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ strategy }),
+		});
+		if (!res.ok) {
+			const error = (await res.json()) as { error?: string };
+			throw new Error(error.error || "Failed to set strategy");
 		}
 	}
 }

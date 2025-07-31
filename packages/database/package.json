@@ -7,11 +7,9 @@
 		".": "./src/index.ts"
 	},
 	"scripts": {
-		"typecheck": "bunx tsc --noEmit",
-		"analyze": "bun run ./src/analyze-performance.ts"
+		"typecheck": "bunx tsc --noEmit"
 	},
 	"dependencies": {
-		"@ccflare/core": "workspace:*",
-		"@ccflare/logger": "workspace:*"
+		"@ccflare/core": "workspace:*"
 	}
 }

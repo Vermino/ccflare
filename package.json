@@ -1,6 +1,11 @@
 {
 	"private": true,
 	"name": "ccflare",
+	"version": "0.0.2",
+	"description": "Ultimate CC Proxy",
+	"author": "",
+	"license": "MIT",
+	"main": "index.js",
 	"workspaces": [
 		"apps/*",
 		"packages/*"

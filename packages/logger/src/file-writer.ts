@@ -1,19 +1,14 @@
 import { createWriteStream, existsSync, mkdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-	BUFFER_SIZES,
-	type Disposable,
-	LIMITS,
-	registerDisposable,
-} from "@ccflare/core";
+import { type Disposable, registerDisposable } from "@ccflare/core";
 import type { LogEvent } from "@ccflare/types";
 
 export class LogFileWriter implements Disposable {
 	private logDir: string;
 	private logFile: string;
 	private stream: ReturnType<typeof createWriteStream> | null = null;
-	private maxFileSize = BUFFER_SIZES.LOG_FILE_MAX_SIZE;
+	private maxFileSize = 10 * 1024 * 1024; // 10MB
 
 	constructor() {
 		// Create log directory in tmp folder
@@ -68,7 +63,7 @@ export class LogFileWriter implements Disposable {
 		}
 	}
 
-	async readLogs(limit: number = LIMITS.LOG_READ_DEFAULT): Promise<LogEvent[]> {
+	async readLogs(limit = 1000): Promise<LogEvent[]> {
 		if (!existsSync(this.logFile)) {
 			return [];
 		}

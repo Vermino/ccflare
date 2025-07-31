@@ -1,25 +1,6 @@
-import { requestEvents } from "@ccflare/core";
-import {
-	sanitizeRequestHeaders,
-	withSanitizedProxyHeaders,
-} from "@ccflare/http-common";
-import type { Account } from "@ccflare/types";
-import type { ProxyContext } from "./handlers";
+import type { Account } from "@ccflare/core";
+import type { ProxyContext } from "./proxy";
 import type { ChunkMessage, EndMessage, StartMessage } from "./worker-messages";
-
-/**
- * Check if a response should be considered successful/expected
- * Treats certain well-known paths that return 404 as expected
- */
-function isExpectedResponse(path: string, response: Response): boolean {
-	// Any .well-known path returning 404 is expected
-	if (path.startsWith("/.well-known/") && response.status === 404) {
-		return true;
-	}
-
-	// Otherwise use standard HTTP success logic
-	return response.ok;
-}
 
 export interface ResponseHandlerOptions {
 	requestId: string;
@@ -32,7 +13,6 @@ export interface ResponseHandlerOptions {
 	timestamp: number;
 	retryAttempt: number;
 	failoverAttempts: number;
-	agentUsed?: string | null;
 }
 
 /**
@@ -51,20 +31,14 @@ export async function forwardToClient(
 		account,
 		requestHeaders,
 		requestBody,
-		response: responseRaw,
+		response,
 		timestamp,
 		retryAttempt, // Always 0 in new flow, but kept for message compatibility
 		failoverAttempts,
-		agentUsed,
 	} = options;
 
-	// Always strip compression headers *before* we do anything else
-	const response = withSanitizedProxyHeaders(responseRaw);
-
-	// Prepare objects once for serialisation - sanitize headers before storing
-	const sanitizedReq = sanitizeRequestHeaders(requestHeaders);
-	const requestHeadersObj = Object.fromEntries(sanitizedReq.entries());
-
+	// Prepare objects once for serialisation
+	const requestHeadersObj = Object.fromEntries(requestHeaders.entries());
 	const responseHeadersObj = Object.fromEntries(response.headers.entries());
 
 	const isStream = ctx.provider.isStreamingResponse?.(response) ?? false;
@@ -85,23 +59,10 @@ export async function forwardToClient(
 		responseHeaders: responseHeadersObj,
 		isStream,
 		providerName: ctx.provider.name,
-		agentUsed: agentUsed || null,
 		retryAttempt,
 		failoverAttempts,
 	};
 	ctx.usageWorker.postMessage(startMessage);
-
-	// Emit request start event for real-time dashboard
-	requestEvents.emit("event", {
-		type: "start",
-		id: requestId,
-		timestamp,
-		method,
-		path,
-		accountId: account?.id || null,
-		statusCode: response.status,
-		agentUsed: agentUsed || null,
-	});
 
 	/*********************************************************************
 	 *  STREAMING RESPONSES — tee with Response.clone() and send chunks
@@ -131,7 +92,7 @@ export async function forwardToClient(
 				const endMsg: EndMessage = {
 					type: "end",
 					requestId,
-					success: isExpectedResponse(path, analyticsClone),
+					success: analyticsClone.ok,
 				};
 				ctx.usageWorker.postMessage(endMsg);
 			} catch (err) {
@@ -145,7 +106,7 @@ export async function forwardToClient(
 			}
 		})();
 
-		// Return the sanitized response
+		// Return the ORIGINAL response untouched
 		return response;
 	}
 
@@ -163,7 +124,7 @@ export async function forwardToClient(
 					bodyBuf.byteLength > 0
 						? Buffer.from(bodyBuf).toString("base64")
 						: null,
-				success: isExpectedResponse(path, clone),
+				success: clone.ok,
 			};
 			ctx.usageWorker.postMessage(endMsg);
 		} catch (err) {
@@ -177,6 +138,6 @@ export async function forwardToClient(
 		}
 	})();
 
-	// Return the sanitized response
+	// Immediately return original response (no header/body changes)
 	return response;
 }

@@ -1,4 +1,5 @@
-import { type Account, StrategyName } from "@ccflare/types";
+import { StrategyName } from "@ccflare/types";
+import type { Account } from "./types";
 
 // Array of all strategies for backwards compatibility
 export const STRATEGIES = Object.values(StrategyName);

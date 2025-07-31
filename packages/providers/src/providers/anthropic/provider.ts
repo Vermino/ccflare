@@ -1,7 +1,5 @@
-import { BUFFER_SIZES } from "@ccflare/core";
-import { sanitizeProxyHeaders } from "@ccflare/http-common";
+import type { Account } from "@ccflare/core";
 import { Logger } from "@ccflare/logger";
-import type { Account } from "@ccflare/types";
 import { BaseProvider } from "../../base";
 import type { RateLimitInfo, TokenRefreshResult } from "../../types";
 
@@ -149,8 +147,10 @@ export class AnthropicProvider extends BaseProvider {
 		response: Response,
 		_account: Account | null,
 	): Promise<Response> {
-		// Sanitize headers by removing hop-by-hop headers
-		const headers = sanitizeProxyHeaders(response.headers);
+		// Strip Content-Encoding header to avoid decompression issues
+		const headers = new Headers(response.headers);
+		headers.delete("content-encoding");
+		headers.delete("Content-Encoding");
 
 		return new Response(response.body, {
 			status: response.status,
@@ -205,7 +205,7 @@ export class AnthropicProvider extends BaseProvider {
 				if (!reader) return null;
 
 				let buffered = "";
-				const maxBytes = BUFFER_SIZES.ANTHROPIC_STREAM_CAP_BYTES;
+				const maxBytes = 32768; // 32 KB cap
 				const decoder = new TextDecoder();
 				let foundMessageStart = false;
 

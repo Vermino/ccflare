@@ -1,6 +1,5 @@
 import type { Database } from "bun:sqlite";
 import type { DatabaseOperations } from "@ccflare/database";
-import { jsonResponse } from "@ccflare/http-common";
 import type { RequestResponse } from "../types";
 
 /**
@@ -39,8 +38,6 @@ export function createRequestsSummaryHandler(db: Database) {
 			cache_creation_input_tokens: number | null;
 			output_tokens: number | null;
 			cost_usd: number | null;
-			agent_used: string | null;
-			output_tokens_per_second: number | null;
 		}>;
 
 		const response: RequestResponse[] = requests.map((request) => ({
@@ -64,11 +61,11 @@ export function createRequestsSummaryHandler(db: Database) {
 				request.cache_creation_input_tokens || undefined,
 			outputTokens: request.output_tokens || undefined,
 			costUsd: request.cost_usd || undefined,
-			agentUsed: request.agent_used || undefined,
-			tokensPerSecond: request.output_tokens_per_second || undefined,
 		}));
 
-		return jsonResponse(response);
+		return new Response(JSON.stringify(response), {
+			headers: { "Content-Type": "application/json" },
+		});
 	};
 }
 
@@ -91,6 +88,8 @@ export function createRequestsDetailHandler(dbOps: DatabaseOperations) {
 			}
 		});
 
-		return jsonResponse(parsed);
+		return new Response(JSON.stringify(parsed), {
+			headers: { "Content-Type": "application/json" },
+		});
 	};
 }
