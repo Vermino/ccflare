@@ -518,3 +518,64 @@ export function createAccountResumeHandler(dbOps: DatabaseOperations) {
 		}
 	};
 }
+
+/**
+ * Create an account rename handler
+ */
+export function createAccountRenameHandler(dbOps: DatabaseOperations) {
+	return async (req: Request, accountId: string): Promise<Response> => {
+		try {
+			const body = await req.json();
+			const { newName } = body;
+
+			if (!newName || typeof newName !== "string") {
+				return new Response(
+					JSON.stringify({ error: "New name is required" }),
+					{
+						status: 400,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
+			}
+
+			// Get current account name
+			const db = dbOps.getDatabase();
+			const account = db
+				.query<{ name: string }, [string]>(
+					"SELECT name FROM accounts WHERE id = ?",
+				)
+				.get(accountId);
+
+			if (!account) {
+				return new Response(JSON.stringify({ error: "Account not found" }), {
+					status: 404,
+					headers: { "Content-Type": "application/json" },
+				});
+			}
+
+			// Update account name
+			db.run("UPDATE accounts SET name = ? WHERE id = ?", [newName, accountId]);
+
+			return new Response(
+				JSON.stringify({
+					success: true,
+					message: `Account renamed to ${newName}`,
+				}),
+				{
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		} catch (error) {
+			return new Response(
+				JSON.stringify({
+					error:
+						error instanceof Error ? error.message : "Failed to rename account",
+				}),
+				{
+					status: 500,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+	};
+}

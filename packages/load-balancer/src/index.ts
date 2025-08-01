@@ -1,1 +1,8 @@
-export { SessionStrategy } from "./strategies";
+export {
+	SessionStrategy,
+	RoundRobinStrategy,
+	LeastUsedStrategy,
+	ModelAwareStrategy,
+	WeightedStrategy,
+	createStrategy,
+} from "./strategies";

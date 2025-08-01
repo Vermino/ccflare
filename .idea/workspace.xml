@@ -5,63 +5,283 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c29293ad-210e-4d81-9506-1976dc3a4ba1" name="Changes" comment="fubar?">
-      <change afterPath="$PROJECT_DIR$/apps/cli/package.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/cli/src/cli.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/tui/src/components/EnhancedRequestsScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/tui/src/components/EnhancedStatsScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/packages/core/src/types.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/packages/tui-core/src/tui-adapter.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/tooltip.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/packages/tui-core/src/server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.claude/settings.local.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/cli/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/cli/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/cli/src/cli.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/cli/src/cli.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/lander/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/lander/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/lander/src/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/lander/src/styles.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/server/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/server/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/server/src/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/server/src/server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/server/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/server/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/tui/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/App.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/tui/src/components/AccountsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/AccountsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/AnalyticsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/AnalyticsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/EnhancedRequestsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/EnhancedRequestsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/EnhancedStatsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/EnhancedStatsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/LogsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/LogsScreen.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/tui/src/components/RequestsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/RequestsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/ServerScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/ServerScreen.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/tui/src/components/StatsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/StatsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/StrategyScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/StrategyScreen.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/tui/src/components/TokenUsageDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/TokenUsageDisplay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/charts/BarChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/charts/BarChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/charts/LineChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/charts/LineChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/charts/PieChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/charts/PieChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/charts/SparklineChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/charts/SparklineChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/charts/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/charts/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/components/charts/utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/components/charts/utils.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/tui/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/main.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bun.lock" beforeDir="false" afterPath="$PROJECT_DIR$/bun.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/architecture.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/architecture.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/cli.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/cli.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/configuration.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/configuration.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/deployment.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/deployment.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/index.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/load-balancing.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/load-balancing.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/troubleshooting.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/troubleshooting.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/src/types/open.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/src/types/open.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tui/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/tui/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/biome.json" beforeDir="false" afterPath="$PROJECT_DIR$/biome.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/agents/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/agents/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/agents/src/discovery.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/agents/src/discovery.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/agents/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/agents/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/agents/src/paths.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/agents/src/paths.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/agents/src/workspace-persistence.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/agents/src/workspace-persistence.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/agents/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/agents/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/cli-commands/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/commands/account.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/commands/account.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/commands/analyze.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/commands/analyze.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/commands/help.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/commands/help.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/commands/stats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/commands/stats.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/prompts/adapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/prompts/adapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/prompts/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/prompts/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/prompts/std-adapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/prompts/std-adapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/runner.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/runner.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/src/utils/browser.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/src/utils/browser.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/cli-commands/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/cli-commands/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/config/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/config/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/config/src/paths-common.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/src/paths-common.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/config/src/paths.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/src/paths.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/config/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/config/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core-di/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core-di/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core-di/src/container.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core-di/src/container.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core-di/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core-di/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core-di/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core-di/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/constants.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/errors.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/errors.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/lifecycle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/lifecycle.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/models.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/models.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/pricing.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/pricing.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/request-events.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/request-events.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/core/src/strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/strategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/src/validation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/src/validation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/core/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/core/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/build.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/build.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/components.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/components.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/App.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/AccountsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/AccountsTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/AgentsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/AgentsTab.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/AnalyticsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/AnalyticsTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/CopyButton.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/CopyButton.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/LogsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/LogsTab.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/OverviewTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/OverviewTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/RequestDetailsModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/RequestDetailsModal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/RequestsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/RequestsTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/StatsTab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/StatsTab.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/StrategyCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/StrategyCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/TokenUsageDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/TokenUsageDisplay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/AccountAddForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/AccountAddForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/AccountList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/AccountList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/AccountListItem.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/AccountListItem.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/DeleteConfirmationDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/DeleteConfirmationDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/RateLimitProgress.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/RateLimitProgress.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/RenameAccountDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/RenameAccountDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/accounts/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/AgentCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/AgentCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/AgentEditDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/AgentEditDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/WorkspaceCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/WorkspaceCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/agents/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/AnalyticsCharts.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/AnalyticsCharts.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/AnalyticsControls.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/AnalyticsControls.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/AnalyticsFilters.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/AnalyticsFilters.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/ModelAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/ModelAnalytics.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/TokenSpeedAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/TokenSpeedAnalytics.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/analytics/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseAreaChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseAreaChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseBarChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseBarChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseLineChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseLineChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BasePieChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BasePieChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseScatterChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/BaseScatterChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ChartContainer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ChartContainer.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ChartTooltip.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ChartTooltip.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/CostChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/CostChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ModelPerformanceChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ModelPerformanceChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ModelPerformanceComparison.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ModelPerformanceComparison.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ModelTokenSpeedChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ModelTokenSpeedChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/MultiModelChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/MultiModelChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/RequestVolumeChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/RequestVolumeChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ResponseTimeChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/ResponseTimeChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/TokenSpeedChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/TokenSpeedChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/TokenUsageChart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/TokenUsageChart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/chart-utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/chart-utils.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/charts/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/navigation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/navigation.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/ChartsSection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/ChartsSection.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/LoadingSkeleton.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/LoadingSkeleton.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/MetricCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/MetricCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/RateLimitInfo.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/RateLimitInfo.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/SystemStatus.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/SystemStatus.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/TimeRangeSelector.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/overview/TimeRangeSelector.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/theme-toggle.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/theme-toggle.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/badge.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/badge.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/dialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/dialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/dropdown-menu.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/dropdown-menu.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/input.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/input.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/label.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/label.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/popover.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/popover.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/progress.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/progress.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/select.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/select.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/separator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/separator.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/skeleton.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/skeleton.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/switch.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/switch.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/tabs.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/components/ui/tabs.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/constants/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/constants/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/contexts/theme-context.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/contexts/theme-context.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/frontend.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/frontend.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/global.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/global.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/hooks/queries.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/hooks/queries.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/hooks/useApiError.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/hooks/useApiError.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/hooks/useRequestStream.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/hooks/useRequestStream.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/lib/chart-utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/lib/chart-utils.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/lib/query-keys.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/lib/query-keys.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/src/lib/utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/src/lib/utils.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/styles/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/styles/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dashboard-web/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dashboard-web/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/database/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/analyze-performance.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/analyze-performance.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/async-writer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/async-writer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/database-operations.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/database-operations.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/factory.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/factory.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/database/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/migrations.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/migrations.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/paths.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/paths.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/performance-indexes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/performance-indexes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/account.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/account.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/agent-preference.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/agent-preference.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/base.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/base.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/oauth.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/oauth.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/request.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/request.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/stats.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/stats.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/src/repositories/strategy.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/src/repositories/strategy.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/database/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/database/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/errors/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/errors/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/errors/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/errors/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/errors/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/errors/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/accounts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/accounts.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/agents-update.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/agents-update.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/agents.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/agents.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/analytics.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/analytics.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/config.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/health.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/health.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/logs-history.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/logs-history.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/logs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/logs.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/oauth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/oauth.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/requests-stream.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/requests-stream.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/requests.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/requests.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/handlers/stats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/handlers/stats.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/router.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/router.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/http-api/src/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/utils/handler-factory.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/utils/handler-factory.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/src/utils/http-error.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/src/utils/http-error.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-api/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-api/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/src/client.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/src/client.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/src/errors.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/src/errors.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/src/headers.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/src/headers.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/src/responses.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/src/responses.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/http-common/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/http-common/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/load-balancer/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/load-balancer/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/load-balancer/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/load-balancer/src/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/load-balancer/src/strategies/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/load-balancer/src/strategies/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/load-balancer/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/load-balancer/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/logger/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/logger/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/logger/src/file-writer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/logger/src/file-writer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/logger/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/logger/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/logger/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/logger/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/oauth-flow/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/oauth-flow/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/oauth-flow/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/oauth-flow/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/providers/src/base.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/base.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/oauth/base-oauth-provider.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/oauth/base-oauth-provider.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/oauth/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/oauth/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/oauth/pkce.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/oauth/pkce.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/oauth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/oauth.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/provider.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/providers/anthropic/provider.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/providers/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/providers/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/src/registry.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/registry.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/providers/src/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/src/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/providers/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/providers/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/proxy/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/account-selector.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/account-selector.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/agent-interceptor.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/agent-interceptor.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/proxy-operations.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/proxy-operations.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/proxy-types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/proxy-types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/request-handler.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/request-handler.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/response-processor.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/response-processor.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/handlers/token-manager.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/handlers/token-manager.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/proxy/src/post-processor.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/post-processor.worker.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/proxy/src/proxy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/proxy.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/proxy/src/response-handler.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/response-handler.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/stream-tee.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/stream-tee.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/src/worker-messages.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/src/worker-messages.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/proxy/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/proxy/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/tui-core/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/tui-core/src/accounts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/accounts.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/analytics.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/analytics.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/args.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/args.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/logs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/logs.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/tui-core/src/requests.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/requests.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages/tui-core/src/stats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/stats.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/strategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/src/tui-adapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/src/tui-adapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/tui-core/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/tui-core/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/account.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/account.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/agent-constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/agent-constants.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/agent.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/agent.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/context.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/context.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/logging.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/logging.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/request.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/request.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/stats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/stats.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/src/strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/src/strategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/types/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/types/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-common/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-common/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-common/src/components/TokenUsageDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-common/src/components/TokenUsageDisplay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-common/src/formatters.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-common/src/formatters.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-common/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-common/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-common/src/presenters.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-common/src/presenters.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-common/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-common/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-constants/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-constants/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-constants/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-constants/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui-constants/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui-constants/tsconfig.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -105,7 +325,7 @@
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "last_opened_file_path": "//wsl.localhost/Ubuntu/home/jesse/projects/website/wp-victims",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -136,7 +356,7 @@
       <workItem from="1753871680259" duration="157000" />
       <workItem from="1753871840971" duration="53000" />
       <workItem from="1753871896991" duration="2533000" />
-      <workItem from="1754003084098" duration="1947000" />
+      <workItem from="1754003084098" duration="3480000" />
     </task>
     <task id="LOCAL-00001" summary="fubar?">
       <option name="closed" value="true" />

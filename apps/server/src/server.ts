@@ -12,7 +12,7 @@ import { container, SERVICE_KEYS } from "@ccflare/core-di";
 import dashboardManifest from "@ccflare/dashboard-web/dist/manifest.json";
 import { AsyncDbWriter, DatabaseFactory } from "@ccflare/database";
 import { APIRouter } from "@ccflare/http-api";
-import { SessionStrategy } from "@ccflare/load-balancer";
+import { createStrategy } from "@ccflare/load-balancer";
 import { Logger } from "@ccflare/logger";
 import { getProvider } from "@ccflare/providers";
 import {
@@ -68,10 +68,12 @@ function initStrategy(): LoadBalancingStrategy {
 	const strategyName = config.getStrategy();
 	log.info(`Initializing load balancing strategy: ${strategyName}`);
 
-	// Only session-based strategy is supported
-	const sessionStrategy = new SessionStrategy(runtime.sessionDurationMs);
-	sessionStrategy.initialize(dbOps);
-	return sessionStrategy;
+	// Create strategy using factory
+	const strategy = createStrategy(strategyName as any, {
+		sessionDurationMs: runtime.sessionDurationMs,
+	});
+	strategy.initialize(dbOps);
+	return strategy;
 }
 
 strategy = initStrategy();

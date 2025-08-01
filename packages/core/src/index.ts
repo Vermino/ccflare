@@ -43,3 +43,15 @@ export {
 	validateNumber,
 	validateString,
 } from "./validation";
+
+export type {
+	Account,
+	AccountRow,
+	LoadBalancingStrategy,
+	Request,
+	RequestRow,
+} from "./types";
+export { NO_ACCOUNT_ID, toAccount, toRequest } from "./types";
+
+// Re-export StrategyStore from types package
+export type { StrategyStore } from "@ccflare/types";

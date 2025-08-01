@@ -2,14 +2,14 @@ import { StrategyName } from "@ccflare/types";
 import type { Account } from "./types";
 
 // Array of all strategies for backwards compatibility
-export const STRATEGIES = Object.values(StrategyName);
+export const STRATEGIES = StrategyName ? Object.values(StrategyName) : ["session", "round-robin", "least-used", "model-aware", "weighted"];
 
 export function isValidStrategy(strategy: string): strategy is StrategyName {
-	return Object.values(StrategyName).includes(strategy as StrategyName);
+	return StrategyName ? Object.values(StrategyName).includes(strategy as StrategyName) : ["session", "round-robin", "least-used", "model-aware", "weighted"].includes(strategy);
 }
 
 // Default load balancing strategy
-export const DEFAULT_STRATEGY = StrategyName.Session;
+export const DEFAULT_STRATEGY = StrategyName?.Session || "session";
 
 // Helper to check if an account is available (not rate-limited or paused)
 export function isAccountAvailable(

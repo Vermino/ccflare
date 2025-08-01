@@ -2,6 +2,10 @@ import type { Account } from "./account";
 
 export enum StrategyName {
 	Session = "session",
+	RoundRobin = "round-robin",
+	LeastUsed = "least-used",
+	ModelAware = "model-aware",
+	Weighted = "weighted",
 }
 
 /**
