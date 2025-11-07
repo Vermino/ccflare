@@ -20,6 +20,7 @@ import {
 	YAxis,
 } from "recharts";
 import { api } from "../api";
+import { ModelAnalytics } from "./analytics/ModelAnalytics";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import {
@@ -39,6 +40,7 @@ import {
 	SelectValue,
 } from "./ui/select";
 import { Separator } from "./ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 const COLORS = {
 	primary: "#f38020",
@@ -197,8 +199,17 @@ export function AnalyticsTab() {
 
 	return (
 		<div className="space-y-6">
-			{/* Controls */}
-			<div className="flex flex-col sm:flex-row gap-4 justify-between">
+			{/* Main Tabs */}
+			<Tabs defaultValue="overview" className="space-y-6">
+				<TabsList>
+					<TabsTrigger value="overview">Overview</TabsTrigger>
+					<TabsTrigger value="models">Model Comparison</TabsTrigger>
+				</TabsList>
+
+				{/* Overview Tab */}
+				<TabsContent value="overview" className="space-y-6">
+					{/* Controls */}
+					<div className="flex flex-col sm:flex-row gap-4 justify-between">
 				<div className="flex flex-wrap gap-2">
 					<Select
 						value={timeRange}
@@ -930,6 +941,28 @@ export function AnalyticsTab() {
 					</CardContent>
 				</Card>
 			)}
+				</TabsContent>
+
+				{/* Model Comparison Tab */}
+				<TabsContent value="models" className="space-y-6">
+					{analytics && analytics.modelPerformance && (
+						<ModelAnalytics
+							modelPerformance={analytics.modelPerformance.map((perf) => ({
+								model: perf.model,
+								avgResponseTime: perf.avgResponseTime,
+								p95ResponseTime: perf.p95ResponseTime,
+								errorRate: perf.errorRate,
+								avgTokensPerSecond: perf.avgTokensPerSecond || null,
+								minTokensPerSecond: perf.minTokensPerSecond || null,
+								maxTokensPerSecond: perf.maxTokensPerSecond || null,
+							}))}
+							costByModel={analytics.costByModel || []}
+							loading={loading}
+							timeRange={timeRange}
+						/>
+					)}
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }

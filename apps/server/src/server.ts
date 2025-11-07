@@ -22,6 +22,8 @@ import {
 	terminateUsageWorker,
 } from "@ccflare/proxy";
 import { serve } from "bun";
+import { printStartupBanner, printWorkerStatus } from "./startup-banner";
+import packageJson from "../../../package.json";
 
 // Initialize DI container
 container.registerInstance(SERVICE_KEYS.Config, new Config());
@@ -47,10 +49,6 @@ setPricingLogger(pricingLogger);
 
 const apiRouter = new APIRouter({ db, config, dbOps });
 const log = container.resolve<Logger>(SERVICE_KEYS.Logger);
-
-log.info("Starting ccflare server...");
-log.info(`Port: ${runtime.port}`);
-log.info(`Session duration: ${runtime.sessionDurationMs}ms`);
 
 // Load balancing strategy initialization
 let strategy: LoadBalancingStrategy;
@@ -90,7 +88,9 @@ const proxyContext: ProxyContext = {
 };
 
 // Initialize usage worker
+printWorkerStatus("Usage Tracker", "starting");
 proxyContext.usageWorker = getUsageWorker();
+printWorkerStatus("Usage Tracker", "started");
 
 // Watch for strategy changes
 config.on("change", ({ key }) => {
@@ -183,21 +183,23 @@ const server = serve({
 	},
 });
 
-console.log(`🚀 ccflare server running on http://localhost:${server.port}`);
-console.log(`📊 Dashboard: http://localhost:${server.port}/dashboard`);
-console.log(`🔍 Health check: http://localhost:${server.port}/health`);
-console.log(
-	`⚙️  Current strategy: ${config.getStrategy()} (default: ${DEFAULT_STRATEGY})`,
-);
-
 // Log initial account status
 const accounts = dbOps.getAllAccounts();
 const activeAccounts = accounts.filter(
 	(a) => !a.paused && (!a.expires_at || a.expires_at > Date.now()),
 );
-log.info(
-	`Loaded ${accounts.length} accounts (${activeAccounts.length} active)`,
-);
+
+// Print startup banner
+printStartupBanner({
+	version: packageJson.version,
+	port: server.port,
+	strategy: config.getStrategy(),
+	defaultStrategy: DEFAULT_STRATEGY,
+	accountsTotal: accounts.length,
+	accountsActive: activeAccounts.length,
+	apiKeyAuthRequired: runtime.requireApiKey || false,
+});
+
 if (activeAccounts.length === 0) {
 	log.warn(
 		"No active accounts available - requests will be forwarded without authentication",
