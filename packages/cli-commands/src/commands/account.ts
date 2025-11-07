@@ -15,6 +15,12 @@ export interface AddAccountOptions {
 	adapter?: PromptAdapter;
 }
 
+export interface AddOpenAIAccountOptions {
+	name: string;
+	apiKey: string;
+	adapter?: PromptAdapter;
+}
+
 export interface AccountListItem {
 	id: string;
 	name: string;
@@ -133,6 +139,62 @@ export async function addAccount(
 	console.log(`\nAccount '${name}' added successfully!`);
 	console.log(`Type: ${mode === "max" ? "Claude Max" : "Claude Console"}`);
 	console.log(`Tier: ${tier}x`);
+}
+
+/**
+ * Add a new OpenAI account using API key
+ */
+export async function addOpenAIAccount(
+	dbOps: DatabaseOperations,
+	options: AddOpenAIAccountOptions,
+): Promise<void> {
+	const { name, apiKey, adapter = stdPromptAdapter } = options;
+
+	// Check if account exists
+	const existingAccounts = dbOps.getAllAccounts();
+	if (existingAccounts.some((a) => a.name === name)) {
+		throw new Error(`Account with name '${name}' already exists`);
+	}
+
+	// Validate API key format (should start with "sk-")
+	if (!apiKey.startsWith("sk-")) {
+		const proceed = await adapter.confirm(
+			"Warning: API key doesn't start with 'sk-'. Are you sure this is correct?",
+		);
+		if (!proceed) {
+			throw new Error("Account creation cancelled");
+		}
+	}
+
+	// Create account
+	const db = dbOps.getDatabase();
+	const accountId = crypto.randomUUID();
+
+	// For OpenAI, we store the API key in refresh_token field
+	// and set access_token to the same value with far future expiry
+	const farFutureExpiry = Date.now() + 365 * 24 * 60 * 60 * 1000; // 1 year
+
+	db.run(
+		`
+		INSERT INTO accounts (
+			id, name, provider, refresh_token, access_token, expires_at,
+			created_at, request_count, total_requests, account_tier
+		) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+		`,
+		[
+			accountId,
+			name,
+			"openai",
+			apiKey,
+			apiKey,
+			farFutureExpiry,
+			Date.now(),
+			1, // OpenAI accounts default to tier 1
+		],
+	);
+
+	console.log(`\nOpenAI account '${name}' added successfully!`);
+	console.log("Provider: OpenAI");
 }
 
 /**

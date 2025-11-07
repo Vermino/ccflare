@@ -17,7 +17,7 @@ export interface ProxyContext {
 	strategy: LoadBalancingStrategy;
 	dbOps: DatabaseOperations;
 	runtime: RuntimeConfig;
-	provider: Provider;
+	providers: Map<string, Provider>;
 	refreshInFlight: Map<string, Promise<string>>;
 	asyncWriter: AsyncDbWriter;
 	usageWorker: Worker;
@@ -55,14 +55,28 @@ export function terminateUsageWorker(): void {
 	}
 }
 
+/**
+ * Select the appropriate provider for the request based on path
+ */
+function selectProvider(path: string, ctx: ProxyContext): Provider | null {
+	// Try each provider to see if it can handle the request
+	for (const provider of ctx.providers.values()) {
+		if (provider.canHandle(path)) {
+			return provider;
+		}
+	}
+	return null;
+}
+
 async function refreshAccessTokenSafe(
 	account: Account,
+	provider: Provider,
 	ctx: ProxyContext,
 ): Promise<string> {
 	// Check if a refresh is already in progress for this account
 	if (!ctx.refreshInFlight.has(account.id)) {
 		// Create a new refresh promise and store it
-		const refreshPromise = ctx.provider
+		const refreshPromise = provider
 			.refreshToken(account, ctx.runtime.clientId)
 			.then((result: TokenRefreshResult) => {
 				ctx.asyncWriter.enqueue(() =>
@@ -92,6 +106,7 @@ async function refreshAccessTokenSafe(
 
 async function getValidAccessToken(
 	account: Account,
+	provider: Provider,
 	ctx: ProxyContext,
 ): Promise<string> {
 	if (
@@ -102,15 +117,19 @@ async function getValidAccessToken(
 		return account.access_token;
 	}
 	log.info(`Token expired or missing for account: ${account.name}`);
-	return await refreshAccessTokenSafe(account, ctx);
+	return await refreshAccessTokenSafe(account, provider, ctx);
 }
 
-function getOrderedAccounts(meta: RequestMeta, ctx: ProxyContext): Account[] {
+function getOrderedAccounts(
+	meta: RequestMeta,
+	provider: Provider,
+	ctx: ProxyContext,
+): Account[] {
 	const allAccounts = ctx.dbOps.getAllAccounts();
 	// Filter accounts by provider
 	const providerAccounts = allAccounts.filter(
 		(account) =>
-			account.provider === ctx.provider.name || account.provider === null,
+			account.provider === provider.name || account.provider === null,
 	);
 	return ctx.strategy.select(providerAccounts, meta);
 }
@@ -139,16 +158,21 @@ export async function handleProxy(
 	const apiKeyAuth = authenticateApiKey(req.headers, ctx.dbOps);
 	const apiKeyId = apiKeyAuth.apiKey?.id;
 
-	// Check if provider can handle this request
-	if (!ctx.provider.canHandle(url.pathname)) {
+	// Select the appropriate provider for this request
+	const provider = selectProvider(url.pathname, ctx);
+	if (!provider) {
 		return new Response(
-			JSON.stringify({ error: "Provider cannot handle this request path" }),
+			JSON.stringify({
+				error: "No provider available to handle this request path",
+			}),
 			{
 				status: 400,
 				headers: { "Content-Type": "application/json" },
 			},
 		);
 	}
+
+	log.info(`Selected provider: ${provider.name} for path: ${url.pathname}`);
 
 	// Capture request body for analytics while preserving streaming
 	let requestBodyBuffer: ArrayBuffer | null = null;
@@ -176,7 +200,7 @@ export async function handleProxy(
 		return new Response(requestBodyBuffer).body ?? undefined;
 	};
 
-	const accounts = getOrderedAccounts(requestMeta, ctx);
+	const accounts = getOrderedAccounts(requestMeta, provider, ctx);
 	const fallbackUnauthenticated = accounts.length === 0;
 
 	if (fallbackUnauthenticated) {
@@ -192,8 +216,8 @@ export async function handleProxy(
 
 	// Handle unauthenticated fallback
 	if (fallbackUnauthenticated) {
-		const targetUrl = ctx.provider.buildUrl(url.pathname, url.search);
-		const headers = ctx.provider.prepareHeaders(req.headers); // No access token
+		const targetUrl = provider.buildUrl(url.pathname, url.search);
+		const headers = provider.prepareHeaders(req.headers); // No access token
 
 		try {
 			const response = await fetch(targetUrl, {
@@ -238,9 +262,9 @@ export async function handleProxy(
 		try {
 			log.info(`Attempting request with account: ${account.name}`);
 
-			const accessToken = await getValidAccessToken(account, ctx);
-			const headers = ctx.provider.prepareHeaders(req.headers, accessToken);
-			const targetUrl = ctx.provider.buildUrl(url.pathname, url.search);
+			const accessToken = await getValidAccessToken(account, provider, ctx);
+			const headers = provider.prepareHeaders(req.headers, accessToken);
+			const targetUrl = provider.buildUrl(url.pathname, url.search);
 
 			const response = await fetch(targetUrl, {
 				method: req.method,
@@ -250,10 +274,10 @@ export async function handleProxy(
 				duplex: "half",
 			});
 
-			const isStream = ctx.provider.isStreamingResponse?.(response) ?? false;
+			const isStream = provider.isStreamingResponse?.(response) ?? false;
 
 			// Parse rate-limit information
-			const rateLimitInfo = ctx.provider.parseRateLimit(response);
+			const rateLimitInfo = provider.parseRateLimit(response);
 
 			// Log if we didn't get rate limit data
 			if (
@@ -336,8 +360,8 @@ export async function handleProxy(
 			}
 
 			// Extract tier info if provider supports it (background)
-			if (ctx.provider.extractTierInfo) {
-				const extractTierInfo = ctx.provider.extractTierInfo.bind(ctx.provider);
+			if (provider.extractTierInfo) {
+				const extractTierInfo = provider.extractTierInfo.bind(provider);
 				(async () => {
 					const tier = await extractTierInfo(response.clone() as Response);
 					if (tier && tier !== account.account_tier) {

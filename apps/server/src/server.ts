@@ -14,7 +14,7 @@ import { AsyncDbWriter, DatabaseFactory } from "@ccflare/database";
 import { APIRouter } from "@ccflare/http-api";
 import { createStrategy } from "@ccflare/load-balancer";
 import { Logger } from "@ccflare/logger";
-import { getProvider } from "@ccflare/providers";
+import { getProvider, type Provider } from "@ccflare/providers";
 import {
 	getUsageWorker,
 	handleProxy,
@@ -56,10 +56,22 @@ let strategy: LoadBalancingStrategy;
 // Refresh token stampede prevention
 const refreshInFlight = new Map<string, Promise<string>>();
 
-// Get provider from registry (for now just Anthropic)
-const provider = getProvider("anthropic");
-if (!provider) {
-	throw new Error("Anthropic provider not found in registry");
+// Get all providers from registry
+const anthropicProvider = getProvider("anthropic");
+const openaiProvider = getProvider("openai");
+
+const providers = new Map<string, Provider>();
+if (anthropicProvider) {
+	providers.set(anthropicProvider.name, anthropicProvider);
+	log.info(`Registered provider: ${anthropicProvider.name}`);
+}
+if (openaiProvider) {
+	providers.set(openaiProvider.name, openaiProvider);
+	log.info(`Registered provider: ${openaiProvider.name}`);
+}
+
+if (providers.size === 0) {
+	throw new Error("No providers found in registry");
 }
 
 function initStrategy(): LoadBalancingStrategy {
@@ -81,7 +93,7 @@ const proxyContext: ProxyContext = {
 	strategy,
 	dbOps,
 	runtime,
-	provider,
+	providers,
 	refreshInFlight,
 	asyncWriter,
 	usageWorker: null as unknown as Worker, // Will be set below
@@ -198,6 +210,7 @@ printStartupBanner({
 	accountsTotal: accounts.length,
 	accountsActive: activeAccounts.length,
 	apiKeyAuthRequired: runtime.requireApiKey || false,
+	providers: Array.from(providers.keys()),
 });
 
 if (activeAccounts.length === 0) {

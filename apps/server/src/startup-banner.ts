@@ -11,6 +11,7 @@ interface StartupBannerOptions {
 	accountsTotal: number;
 	accountsActive: number;
 	apiKeyAuthRequired: boolean;
+	providers?: string[];
 }
 
 export function printStartupBanner(options: StartupBannerOptions): void {
@@ -54,6 +55,10 @@ export function printStartupBanner(options: StartupBannerOptions): void {
 
 	console.log("\n⚙️  Load Balancing: " + strategy + (strategy !== defaultStrategy ? ` (default: ${defaultStrategy})` : ""));
 	console.log("👥 Accounts: " + accountsTotal + " total, " + accountsActive + " active");
+
+	if (options.providers && options.providers.length > 0) {
+		console.log("🔌 Providers: " + options.providers.join(", "));
+	}
 
 	if (apiKeyAuthRequired) {
 		console.log("🔐 API Key Auth: REQUIRED");

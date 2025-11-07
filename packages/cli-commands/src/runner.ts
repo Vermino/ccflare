@@ -5,6 +5,7 @@ import { container, SERVICE_KEYS } from "@ccflare/core-di";
 import { DatabaseFactory } from "@ccflare/database";
 import {
 	addAccount,
+	addOpenAIAccount,
 	getAccountsList,
 	pauseAccount,
 	removeAccountWithConfirmation,
@@ -45,6 +46,7 @@ export async function runCli(argv: string[]): Promise<void> {
 				rpm: { type: "string" },
 				tpm: { type: "string" },
 				daily: { type: "string" },
+				"api-key": { type: "string" },
 			},
 		});
 
@@ -72,6 +74,25 @@ export async function runCli(argv: string[]): Promise<void> {
 						: undefined;
 
 				await addAccount(dbOps, config, { name, mode, tier });
+				break;
+			}
+
+			case "add-openai": {
+				const name = positionals[1];
+				if (!name) {
+					console.error("Error: Account name is required");
+					console.log("Usage: ccflare-cli add-openai <name> --api-key <key>");
+					process.exit(1);
+				}
+
+				const apiKey = values["api-key"] as string | undefined;
+				if (!apiKey) {
+					console.error("Error: OpenAI API key is required");
+					console.log("Usage: ccflare-cli add-openai <name> --api-key <key>");
+					process.exit(1);
+				}
+
+				await addOpenAIAccount(dbOps, { name, apiKey });
 				break;
 			}
 
