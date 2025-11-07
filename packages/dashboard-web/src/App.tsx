@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AccountsTab } from "./components/AccountsTab";
 import { AgentsTab } from "./components/AgentsTab";
 import { AnalyticsTab } from "./components/AnalyticsTab";
+import { ApiKeysTab } from "./components/ApiKeysTab";
 import { LogsTab } from "./components/LogsTab";
 import { Navigation } from "./components/navigation";
 import { OverviewTab } from "./components/OverviewTab";
@@ -34,6 +35,8 @@ export function App() {
 				return <RequestsTab />;
 			case "accounts":
 				return <AccountsTab />;
+			case "api-keys":
+				return <ApiKeysTab />;
 			case "agents":
 				return <AgentsTab />;
 			case "projects":
@@ -66,6 +69,7 @@ export function App() {
 										{activeTab === "analytics" && "Analytics"}
 										{activeTab === "requests" && "Request History"}
 										{activeTab === "accounts" && "Account Management"}
+										{activeTab === "api-keys" && "API Keys"}
 										{activeTab === "agents" && "Agent Management"}
 										{activeTab === "projects" && "Project Management"}
 										{activeTab === "logs" && "System Logs"}
@@ -79,6 +83,8 @@ export function App() {
 											"View detailed request and response data"}
 										{activeTab === "accounts" &&
 											"Manage your OAuth accounts and bandwidth status"}
+										{activeTab === "api-keys" &&
+											"Manage API keys for multi-user access and token pooling"}
 										{activeTab === "agents" &&
 											"Configure and manage your AI agents"}
 										{activeTab === "projects" &&

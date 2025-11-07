@@ -10,6 +10,13 @@ import {
 	createAccountTierUpdateHandler,
 } from "./handlers/accounts";
 import {
+	createApiKeyCreateHandler,
+	createApiKeyDeleteHandler,
+	createApiKeyDisableHandler,
+	createApiKeyEnableHandler,
+	createApiKeysListHandler,
+} from "./handlers/api-keys";
+import {
 	createAgentVersionCreateHandler,
 	createAgentVersionRollbackHandler,
 	createAgentVersionsListHandler,
@@ -96,6 +103,13 @@ export class APIRouter {
 		const agentsHandler = createAgentsListHandler(dbOps);
 		const workspacesHandler = createWorkspacesListHandler();
 		const requestsStreamHandler = createRequestsStreamHandler();
+
+		// API Keys handlers
+		const apiKeysListHandler = createApiKeysListHandler(dbOps);
+		const apiKeyCreateHandler = createApiKeyCreateHandler(dbOps);
+		const apiKeyDeleteHandler = createApiKeyDeleteHandler(dbOps);
+		const apiKeyEnableHandler = createApiKeyEnableHandler(dbOps);
+		const apiKeyDisableHandler = createApiKeyDisableHandler(dbOps);
 
 		// Feedback system handlers
 		const projectsListHandler = createProjectsListHandler(db);
@@ -205,6 +219,19 @@ export class APIRouter {
 		);
 		this.handlers.set("POST:/api/reviews/trigger", (req) =>
 			reviewTriggerHandler(req),
+		);
+
+		// API Keys routes
+		this.handlers.set("GET:/api/api-keys", () => apiKeysListHandler());
+		this.handlers.set("POST:/api/api-keys", (req) => apiKeyCreateHandler(req));
+		this.handlers.set("DELETE:/api/api-keys/:id", (req, url) =>
+			apiKeyDeleteHandler(req, url),
+		);
+		this.handlers.set("POST:/api/api-keys/:id/enable", (req, url) =>
+			apiKeyEnableHandler(req, url),
+		);
+		this.handlers.set("POST:/api/api-keys/:id/disable", (req, url) =>
+			apiKeyDisableHandler(req, url),
 		);
 	}
 
@@ -449,6 +476,39 @@ export class APIRouter {
 			// Review response (PUT /api/reviews/:id/response)
 			if (path.endsWith("/response") && method === "PUT") {
 				const handler = createReviewResponseHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
+					req,
+					url,
+				);
+			}
+		}
+
+		// Check for dynamic API key endpoints
+		if (path.startsWith("/api/api-keys/")) {
+			const parts = path.split("/");
+			const keyId = parts[3];
+
+			// Enable API key (POST /api/api-keys/:id/enable)
+			if (path.endsWith("/enable") && method === "POST") {
+				const handler = createApiKeyEnableHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
+					req,
+					url,
+				);
+			}
+
+			// Disable API key (POST /api/api-keys/:id/disable)
+			if (path.endsWith("/disable") && method === "POST") {
+				const handler = createApiKeyDisableHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
+					req,
+					url,
+				);
+			}
+
+			// Delete API key (DELETE /api/api-keys/:id)
+			if (parts.length === 4 && method === "DELETE") {
+				const handler = createApiKeyDeleteHandler(this.context.dbOps);
 				return await this.wrapHandler((req, url) => handler(req, url))(
 					req,
 					url,

@@ -28,6 +28,15 @@ export interface Account {
 	output_tokens_limit: number | null;
 	output_tokens_remaining: number | null;
 	output_tokens_reset: number | null;
+	// Unified 5-hour and 7-day rate limit tracking
+	unified_5h_status: string | null;
+	unified_5h_reset: number | null;
+	unified_7d_status: string | null;
+	unified_7d_reset: number | null;
+	unified_fallback_percentage: number | null;
+	unified_representative_claim: string | null;
+	unified_overage_disabled_reason: string | null;
+	organization_id: string | null;
 }
 
 export interface Stats {
