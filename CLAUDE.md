@@ -16,7 +16,7 @@ Always run:
 ## Commands
 
 ### Running the server
-- `bun start` - Start the load balancer (port 8080)
+- `bun start` - Start the load balancer (port 8081)
 
 ### Managing accounts
 - `ccflare --add-account <name>` - Add a new account

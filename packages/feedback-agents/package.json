@@ -1,0 +1,33 @@
+{
+	"name": "@ccflare/feedback-agents",
+	"version": "1.0.0",
+	"description": "Specialized agents for the Claude Code feedback and improvement system",
+	"main": "agents",
+	"scripts": {
+		"deploy": "bun run deploy.ts",
+		"validate": "bun run validate.ts",
+		"test": "echo 'No tests yet'",
+		"lint": "biome check --write",
+		"format": "biome format --write"
+	},
+	"dependencies": {
+		"@ccflare/agents": "workspace:*",
+		"@ccflare/database": "workspace:*",
+		"@ccflare/logger": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^22.5.4",
+		"typescript": "^5.7.2"
+	},
+	"files": [
+		"agents/*.md",
+		"README.md"
+	],
+	"keywords": [
+		"claude-code",
+		"agents",
+		"feedback",
+		"performance",
+		"analytics"
+	]
+}

@@ -94,7 +94,6 @@ export class SessionStrategy implements LoadBalancingStrategy {
 }
 
 export class RoundRobinStrategy implements LoadBalancingStrategy {
-	private store: StrategyStore | null = null;
 	private log = new Logger("RoundRobinStrategy");
 	private lastUsedIndex = 0;
 
@@ -121,7 +120,6 @@ export class RoundRobinStrategy implements LoadBalancingStrategy {
 }
 
 export class LeastUsedStrategy implements LoadBalancingStrategy {
-	private store: StrategyStore | null = null;
 	private log = new Logger("LeastUsedStrategy");
 
 	initialize(store: StrategyStore): void {
@@ -148,7 +146,6 @@ export class LeastUsedStrategy implements LoadBalancingStrategy {
 }
 
 export class ModelAwareStrategy implements LoadBalancingStrategy {
-	private store: StrategyStore | null = null;
 	private log = new Logger("ModelAwareStrategy");
 
 	initialize(store: StrategyStore): void {
@@ -184,7 +181,6 @@ export class ModelAwareStrategy implements LoadBalancingStrategy {
 }
 
 export class WeightedStrategy implements LoadBalancingStrategy {
-	private store: StrategyStore | null = null;
 	private log = new Logger("WeightedStrategy");
 
 	initialize(store: StrategyStore): void {

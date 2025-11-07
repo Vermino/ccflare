@@ -102,8 +102,36 @@ export class DatabaseOperations implements StrategyStore, Disposable {
 		status: string,
 		reset: number | null,
 		remaining?: number | null,
+		detailedLimits?: {
+			requestsLimit?: number | null;
+			requestsRemaining?: number | null;
+			requestsReset?: number | null;
+			tokensLimit?: number | null;
+			tokensRemaining?: number | null;
+			tokensReset?: number | null;
+			inputTokensLimit?: number | null;
+			inputTokensRemaining?: number | null;
+			inputTokensReset?: number | null;
+			outputTokensLimit?: number | null;
+			outputTokensRemaining?: number | null;
+			outputTokensReset?: number | null;
+			unifiedFiveHourStatus?: string | null;
+			unifiedFiveHourReset?: number | null;
+			unifiedSevenDayStatus?: string | null;
+			unifiedSevenDayReset?: number | null;
+			unifiedFallbackPercentage?: number | null;
+			unifiedRepresentativeClaim?: string | null;
+			unifiedOverageDisabledReason?: string | null;
+			organizationId?: string | null;
+		},
 	): void {
-		this.accounts.updateRateLimitMeta(accountId, status, reset, remaining);
+		this.accounts.updateRateLimitMeta(
+			accountId,
+			status,
+			reset,
+			remaining,
+			detailedLimits,
+		);
 	}
 
 	updateAccountTier(accountId: string, tier: number): void {

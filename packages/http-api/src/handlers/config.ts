@@ -15,7 +15,7 @@ export function createConfigHandlers(config: Config) {
 			const settings = config.getAllSettings();
 			const response: ConfigResponse = {
 				lb_strategy: (settings.lb_strategy as string) || "round_robin",
-				port: (settings.port as number) || 8080,
+				port: (settings.port as number) || 8081,
 				sessionDurationMs: (settings.sessionDurationMs as number) || 3600000,
 			};
 			return jsonResponse(response);

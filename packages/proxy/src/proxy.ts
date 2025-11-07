@@ -8,6 +8,7 @@ import type {
 import type { AsyncDbWriter, DatabaseOperations } from "@ccflare/database";
 import { Logger } from "@ccflare/logger";
 import type { Provider, TokenRefreshResult } from "@ccflare/providers";
+import { feedbackMiddleware } from "./handlers/feedback-middleware";
 import { forwardToClient } from "./response-handler";
 import type { ControlMessage } from "./worker-messages";
 
@@ -144,6 +145,18 @@ export async function handleProxy(
 		requestBodyBuffer = await req.arrayBuffer();
 	}
 
+	// Feedback middleware: capture request information
+	try {
+		await feedbackMiddleware.onRequest(
+			requestMeta.id,
+			req.headers,
+			requestBodyBuffer,
+			ctx,
+		);
+	} catch (error) {
+		log.error("Feedback middleware onRequest error:", error);
+	}
+
 	// Helper to create a fresh body stream for each fetch attempt
 	const createBodyStream = () => {
 		if (!requestBodyBuffer) return undefined;
@@ -229,6 +242,16 @@ export async function handleProxy(
 			// Parse rate-limit information
 			const rateLimitInfo = ctx.provider.parseRateLimit(response);
 
+			// Log if we didn't get rate limit data
+			if (
+				!rateLimitInfo.statusHeader &&
+				rateLimitInfo.unifiedFallbackPercentage === undefined
+			) {
+				log.info(
+					`⚠️ No rate limit data received for ${account.name} (ID: ${account.id})`,
+				);
+			}
+
 			// Hard rate-limit ⇒ mark account + try next one
 			if (!isStream && rateLimitInfo.isRateLimited && rateLimitInfo.resetTime) {
 				log.warn(
@@ -246,6 +269,59 @@ export async function handleProxy(
 			// Update basic account metadata (non-blocking)
 			ctx.asyncWriter.enqueue(() => ctx.dbOps.updateAccountUsage(account.id));
 
+			// Update rate limit metadata
+			if (
+				rateLimitInfo.statusHeader ||
+				rateLimitInfo.unifiedFallbackPercentage !== undefined
+			) {
+				const status = rateLimitInfo.statusHeader || "unknown";
+				log.info(
+					`💾 Saving rate limit data for ${account.name} (ID: ${account.id}): fallback=${rateLimitInfo.unifiedFallbackPercentage}, claim=${rateLimitInfo.unifiedRepresentativeClaim}`,
+				);
+
+				// TEMPORARY: Call synchronously to test if database writes work
+				try {
+					ctx.dbOps.updateAccountRateLimitMeta(
+						account.id,
+						status,
+						rateLimitInfo.resetTime ?? null,
+						rateLimitInfo.remaining,
+						{
+							requestsLimit: rateLimitInfo.requestsLimit ?? null,
+							requestsRemaining: rateLimitInfo.requestsRemaining ?? null,
+							requestsReset: rateLimitInfo.requestsReset ?? null,
+							tokensLimit: rateLimitInfo.tokensLimit ?? null,
+							tokensRemaining: rateLimitInfo.tokensRemaining ?? null,
+							tokensReset: rateLimitInfo.tokensReset ?? null,
+							inputTokensLimit: rateLimitInfo.inputTokensLimit ?? null,
+							inputTokensRemaining: rateLimitInfo.inputTokensRemaining ?? null,
+							inputTokensReset: rateLimitInfo.inputTokensReset ?? null,
+							outputTokensLimit: rateLimitInfo.outputTokensLimit ?? null,
+							outputTokensRemaining:
+								rateLimitInfo.outputTokensRemaining ?? null,
+							outputTokensReset: rateLimitInfo.outputTokensReset ?? null,
+							unifiedFiveHourStatus:
+								rateLimitInfo.unifiedFiveHourStatus ?? null,
+							unifiedFiveHourReset: rateLimitInfo.unifiedFiveHourReset ?? null,
+							unifiedSevenDayStatus:
+								rateLimitInfo.unifiedSevenDayStatus ?? null,
+							unifiedSevenDayReset: rateLimitInfo.unifiedSevenDayReset ?? null,
+							unifiedFallbackPercentage:
+								rateLimitInfo.unifiedFallbackPercentage ?? null,
+							unifiedRepresentativeClaim:
+								rateLimitInfo.unifiedRepresentativeClaim ?? null,
+							unifiedOverageDisabledReason:
+								rateLimitInfo.unifiedOverageDisabledReason ?? null,
+						},
+					);
+					log.info(
+						`✅ Synchronous database write completed for ${account.name}`,
+					);
+				} catch (error) {
+					log.error(`❌ Failed to write database:`, error);
+				}
+			}
+
 			// Extract tier info if provider supports it (background)
 			if (ctx.provider.extractTierInfo) {
 				const extractTierInfo = ctx.provider.extractTierInfo.bind(ctx.provider);
@@ -260,6 +336,17 @@ export async function handleProxy(
 						);
 					}
 				})();
+			}
+
+			// Feedback middleware: capture response information
+			try {
+				await feedbackMiddleware.onResponse(
+					requestMeta.id,
+					response.clone(),
+					ctx,
+				);
+			} catch (error) {
+				log.error("Feedback middleware onResponse error:", error);
 			}
 
 			// Pass straight through to client with background analytics

@@ -28,6 +28,15 @@ bun run ccflare
 export ANTHROPIC_BASE_URL=http://localhost:8080
 ```
 
+## Interface Options
+
+Choose your preferred way to interact with ccflare:
+
+- **🖥️ Desktop App** - Native application with system integration ([apps/desktop](apps/desktop/README.md))
+- **🌐 Web Dashboard** - Browser-based interface at `http://localhost:8080/dashboard`
+- **💻 Terminal UI** - Interactive command-line interface (`bun run ccflare`)
+- **🔌 API Only** - Headless proxy server (`bun start`)
+
 ## Features
 
 ### 🎯 Intelligent Load Balancing
@@ -42,6 +51,7 @@ export ANTHROPIC_BASE_URL=http://localhost:8080
 ### 🛠️ Developer Tools
 - Interactive TUI (`bun run ccflare`)
 - Web dashboard (`http://localhost:8080/dashboard`)
+- **Desktop App** - Native Tauri application ([see apps/desktop](apps/desktop/README.md))
 - CLI for account management
 - REST API for automation
 

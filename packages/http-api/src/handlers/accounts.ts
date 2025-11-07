@@ -16,7 +16,7 @@ export function createAccountsListHandler(db: Database) {
 		const accounts = db
 			.query(
 				`
-				SELECT 
+				SELECT
 					id,
 					name,
 					provider,
@@ -32,11 +32,23 @@ export function createAccountsListHandler(db: Database) {
 					session_request_count,
 					COALESCE(account_tier, 1) as account_tier,
 					COALESCE(paused, 0) as paused,
-					CASE 
-						WHEN expires_at > ?1 THEN 1 
-						ELSE 0 
+					requests_limit,
+					requests_remaining,
+					requests_reset,
+					tokens_limit,
+					tokens_remaining,
+					tokens_reset,
+					input_tokens_limit,
+					input_tokens_remaining,
+					input_tokens_reset,
+					output_tokens_limit,
+					output_tokens_remaining,
+					output_tokens_reset,
+					CASE
+						WHEN expires_at > ?1 THEN 1
+						ELSE 0
 					END as token_valid,
-					CASE 
+					CASE
 						WHEN rate_limited_until > ?2 THEN 1
 						ELSE 0
 					END as rate_limited,
@@ -65,6 +77,18 @@ export function createAccountsListHandler(db: Database) {
 			session_request_count: number;
 			account_tier: number;
 			paused: 0 | 1;
+			requests_limit: number | null;
+			requests_remaining: number | null;
+			requests_reset: number | null;
+			tokens_limit: number | null;
+			tokens_remaining: number | null;
+			tokens_reset: number | null;
+			input_tokens_limit: number | null;
+			input_tokens_remaining: number | null;
+			input_tokens_reset: number | null;
+			output_tokens_limit: number | null;
+			output_tokens_remaining: number | null;
+			output_tokens_reset: number | null;
 			token_valid: 0 | 1;
 			rate_limited: 0 | 1;
 			session_info: string | null;
@@ -113,6 +137,19 @@ export function createAccountsListHandler(db: Database) {
 					: null,
 				rateLimitRemaining: account.rate_limit_remaining,
 				sessionInfo: account.session_info || "",
+				// Detailed rate limit fields
+				requests_limit: account.requests_limit,
+				requests_remaining: account.requests_remaining,
+				requests_reset: account.requests_reset,
+				tokens_limit: account.tokens_limit,
+				tokens_remaining: account.tokens_remaining,
+				tokens_reset: account.tokens_reset,
+				input_tokens_limit: account.input_tokens_limit,
+				input_tokens_remaining: account.input_tokens_remaining,
+				input_tokens_reset: account.input_tokens_reset,
+				output_tokens_limit: account.output_tokens_limit,
+				output_tokens_remaining: account.output_tokens_remaining,
+				output_tokens_reset: account.output_tokens_reset,
 			};
 		});
 
@@ -529,13 +566,10 @@ export function createAccountRenameHandler(dbOps: DatabaseOperations) {
 			const { newName } = body;
 
 			if (!newName || typeof newName !== "string") {
-				return new Response(
-					JSON.stringify({ error: "New name is required" }),
-					{
-						status: 400,
-						headers: { "Content-Type": "application/json" },
-					},
-				);
+				return new Response(JSON.stringify({ error: "New name is required" }), {
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				});
 			}
 
 			// Get current account name

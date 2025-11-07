@@ -3,17 +3,20 @@ import {
 	BarChart3,
 	Bot,
 	FileText,
+	Folder,
 	GitBranch,
 	LayoutDashboard,
 	Menu,
 	Shield,
 	Users,
 	X,
-	Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
+import { AccountWidget } from "./AccountWidget";
+import { StrategyWidget } from "./StrategyWidget";
 import { ThemeToggle } from "./theme-toggle";
+import { UsageWidget } from "./UsageWidget";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
@@ -30,6 +33,7 @@ const navItems: NavItem[] = [
 	{ label: "Requests", icon: Activity, value: "requests" },
 	{ label: "Accounts", icon: Users, value: "accounts" },
 	{ label: "Agents", icon: Bot, value: "agents" },
+	{ label: "Projects", icon: Folder, value: "projects" },
 	{ label: "Logs", icon: FileText, value: "logs" },
 ];
 
@@ -137,15 +141,9 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
 					{/* Footer */}
 					<div className="p-4 space-y-4">
-						<div className="rounded-lg bg-muted/50 p-3">
-							<div className="flex items-center gap-2 text-sm">
-								<Zap className="h-4 w-4 text-primary" />
-								<span className="font-medium">Status</span>
-							</div>
-							<p className="mt-1 text-xs text-muted-foreground">
-								All systems operational
-							</p>
-						</div>
+						<UsageWidget />
+						<AccountWidget />
+						<StrategyWidget />
 
 						<div className="hidden lg:flex items-center justify-between">
 							<div className="flex items-center gap-2 text-xs text-muted-foreground">

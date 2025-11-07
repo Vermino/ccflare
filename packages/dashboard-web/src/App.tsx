@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AccountsTab } from "./components/AccountsTab";
+import { AgentsTab } from "./components/AgentsTab";
 import { AnalyticsTab } from "./components/AnalyticsTab";
 import { LogsTab } from "./components/LogsTab";
 import { Navigation } from "./components/navigation";
 import { OverviewTab } from "./components/OverviewTab";
+import { ProjectsTab } from "./components/ProjectsTab";
 import { RequestsTab } from "./components/RequestsTab";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ThemeProvider } from "./contexts/theme-context";
@@ -32,6 +34,10 @@ export function App() {
 				return <RequestsTab />;
 			case "accounts":
 				return <AccountsTab />;
+			case "agents":
+				return <AgentsTab />;
+			case "projects":
+				return <ProjectsTab />;
 			case "logs":
 				return <LogsTab />;
 			default:
@@ -60,6 +66,8 @@ export function App() {
 										{activeTab === "analytics" && "Analytics"}
 										{activeTab === "requests" && "Request History"}
 										{activeTab === "accounts" && "Account Management"}
+										{activeTab === "agents" && "Agent Management"}
+										{activeTab === "projects" && "Project Management"}
 										{activeTab === "logs" && "System Logs"}
 									</h1>
 									<p className="text-muted-foreground mt-2">
@@ -70,7 +78,11 @@ export function App() {
 										{activeTab === "requests" &&
 											"View detailed request and response data"}
 										{activeTab === "accounts" &&
-											"Manage your OAuth accounts and settings"}
+											"Manage your OAuth accounts and bandwidth status"}
+										{activeTab === "agents" &&
+											"Configure and manage your AI agents"}
+										{activeTab === "projects" &&
+											"Track and analyze your Claude Code projects"}
 										{activeTab === "logs" &&
 											"Real-time system logs and debugging information"}
 									</p>

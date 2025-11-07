@@ -1,0 +1,29 @@
+{
+	"name": "@ccflare/desktop",
+	"version": "1.0.0",
+	"description": "ccflare Desktop - Load balancer proxy for Claude with desktop interface",
+	"type": "module",
+	"scripts": {
+		"tauri": "tauri",
+		"dev": "tauri dev",
+		"build": "tauri build",
+		"prebuild": "bun run build:web",
+		"build:web": "cd ../../packages/dashboard-web && bun run build",
+		"preview": "tauri dev --no-dev-server"
+	},
+	"dependencies": {
+		"@tauri-apps/api": "^2.0.0",
+		"@tauri-apps/plugin-shell": "^2.0.0",
+		"@tauri-apps/plugin-dialog": "^2.0.0",
+		"@tauri-apps/plugin-fs": "^2.0.0",
+		"@tauri-apps/plugin-http": "^2.0.0",
+		"@tauri-apps/plugin-notification": "^2.0.0",
+		"@tauri-apps/plugin-os": "^2.0.0",
+		"@tauri-apps/plugin-process": "^2.0.0",
+		"@tauri-apps/plugin-updater": "^2.0.0",
+		"@tauri-apps/plugin-window-state": "^2.0.0"
+	},
+	"devDependencies": {
+		"@tauri-apps/cli": "^2.7.1"
+	}
+}

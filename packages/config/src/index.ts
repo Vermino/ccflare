@@ -133,7 +133,7 @@ export class Config extends EventEmitter {
 				backoff: 2,
 			},
 			sessionDurationMs: 5 * 60 * 60 * 1000, // 5 hours
-			port: 8080,
+			port: 8081,
 		};
 
 		// Override with environment variables if present

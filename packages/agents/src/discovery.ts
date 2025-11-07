@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { Config } from "@ccflare/config";
+import { DEFAULT_AGENT_MODEL } from "@ccflare/core";
 import { Logger } from "@ccflare/logger";
 import {
 	type Agent,
@@ -27,7 +28,6 @@ export class AgentRegistry {
 	private cache: AgentCache | null = null;
 	private workspaces: Map<string, AgentWorkspace> = new Map();
 	private initialized = false;
-	private config: Config;
 
 	constructor() {
 		this.config = new Config();
@@ -117,7 +117,7 @@ export class AgentRegistry {
 			}
 
 			// Parse and validate model
-			const defaultModel = this.config.getDefaultAgentModel();
+			const defaultModel = DEFAULT_AGENT_MODEL;
 			let model: AllowedModel = defaultModel as AllowedModel;
 
 			// Handle shorthand model names
