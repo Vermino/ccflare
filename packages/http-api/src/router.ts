@@ -32,6 +32,7 @@ import { createAgentUpdateHandler } from "./handlers/agents-update";
 import { createAnalyticsHandler } from "./handlers/analytics";
 import { createBandwidthHandler } from "./handlers/bandwidth";
 import { handleClaudeUsage } from "./handlers/claude-usage";
+import { handleOpenAIUsage } from "./handlers/openai-usage";
 import { createConfigHandlers } from "./handlers/config";
 import {
 	createFeedbackSubmissionHandler,
@@ -190,6 +191,9 @@ export class APIRouter {
 		);
 		this.handlers.set("GET:/api/claude/usage", () =>
 			handleClaudeUsage(db as Database),
+		);
+		this.handlers.set("GET:/api/openai/usage", () =>
+			handleOpenAIUsage(db as Database),
 		);
 		this.handlers.set("GET:/api/agents", () => agentsHandler());
 		this.handlers.set("POST:/api/agents/bulk-preference", (req) => {

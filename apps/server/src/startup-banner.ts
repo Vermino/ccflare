@@ -47,6 +47,7 @@ export function printStartupBanner(options: StartupBannerOptions): void {
 	console.log("- GET    http://localhost:" + port + "/api/api-keys          → List API keys");
 	console.log("- POST   http://localhost:" + port + "/api/api-keys          → Create API key");
 	console.log("- GET    http://localhost:" + port + "/api/claude/usage      → Claude usage data");
+	console.log("- GET    http://localhost:" + port + "/api/openai/usage      → OpenAI usage data");
 	console.log("- GET    http://localhost:" + port + "/api/agents            → Agent list");
 	console.log("- GET    http://localhost:" + port + "/api/projects          → Project list");
 	console.log("- GET    http://localhost:" + port + "/api/bandwidth         → Bandwidth stats");

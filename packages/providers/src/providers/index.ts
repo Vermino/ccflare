@@ -5,4 +5,8 @@ export {
 	type ClaudeUsageData,
 } from "./anthropic/index";
 
-export { OpenAIProvider } from "./openai/index";
+export {
+	OpenAIProvider,
+	fetchOpenAIUsage,
+	type OpenAIUsageData,
+} from "./openai/index";
