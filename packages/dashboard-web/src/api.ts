@@ -201,6 +201,29 @@ class API {
 		}>;
 	}
 
+	async addOpenAIAccount(data: {
+		name: string;
+		apiKey: string;
+	}): Promise<{ message: string; provider: string }> {
+		const res = await fetch(`${this.baseUrl}/api/accounts`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				name: data.name,
+				apiKey: data.apiKey,
+				provider: "openai",
+			}),
+		});
+		if (!res.ok) {
+			const error = (await res.json()) as { error?: string };
+			throw new Error(error.error || "Failed to add OpenAI account");
+		}
+		return res.json() as Promise<{
+			message: string;
+			provider: string;
+		}>;
+	}
+
 	async removeAccount(name: string, confirm: string): Promise<void> {
 		const res = await fetch(`${this.baseUrl}/api/accounts/${name}`, {
 			method: "DELETE",

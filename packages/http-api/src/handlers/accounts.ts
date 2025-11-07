@@ -213,8 +213,18 @@ export function createAccountAddHandler(dbOps: DatabaseOperations) {
 				tier?: number;
 				code?: string;
 				step?: "init" | "callback";
+				provider?: "anthropic" | "openai";
+				apiKey?: string;
 			};
-			const { name, mode = "max", tier = 1, code, step = "init" } = body;
+			const {
+				name,
+				mode = "max",
+				tier = 1,
+				code,
+				step = "init",
+				provider = "anthropic",
+				apiKey,
+			} = body;
 
 			if (!name || typeof name !== "string") {
 				return new Response(
@@ -226,6 +236,76 @@ export function createAccountAddHandler(dbOps: DatabaseOperations) {
 				);
 			}
 
+			// Handle OpenAI account creation (simple API key flow)
+			if (provider === "openai") {
+				if (!apiKey) {
+					return new Response(
+						JSON.stringify({ error: "API key is required for OpenAI accounts" }),
+						{
+							status: 400,
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+
+				// Check if account already exists
+				const existingAccounts = dbOps.getAllAccounts();
+				if (existingAccounts.some((a) => a.name === name)) {
+					return new Response(
+						JSON.stringify({
+							error: `Account with name '${name}' already exists`,
+						}),
+						{
+							status: 400,
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+
+				// Validate API key format
+				if (!apiKey.startsWith("sk-")) {
+					console.warn(
+						`OpenAI API key for ${name} doesn't start with 'sk-' - this may not be a valid OpenAI key`,
+					);
+				}
+
+				// Create account in database
+				const db = dbOps.getDatabase();
+				const accountId = crypto.randomUUID();
+				const farFutureExpiry = Date.now() + 365 * 24 * 60 * 60 * 1000; // 1 year
+
+				db.run(
+					`
+					INSERT INTO accounts (
+						id, name, provider, refresh_token, access_token, expires_at,
+						created_at, request_count, total_requests, account_tier
+					) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+					`,
+					[
+						accountId,
+						name,
+						"openai",
+						apiKey,
+						apiKey,
+						farFutureExpiry,
+						Date.now(),
+						1, // OpenAI accounts default to tier 1
+					],
+				);
+
+				return new Response(
+					JSON.stringify({
+						success: true,
+						message: `OpenAI account '${name}' added successfully!`,
+						provider: "OpenAI",
+					}),
+					{
+						headers: { "Content-Type": "application/json" },
+					},
+				);
+			}
+
+			// Handle Claude/Anthropic account creation (OAuth flow)
 			// Step 1: Initialize OAuth flow
 			if (step === "init") {
 				// Check if account already exists

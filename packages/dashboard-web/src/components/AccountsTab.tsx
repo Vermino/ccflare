@@ -77,6 +77,21 @@ export function AccountsTab() {
 		}
 	};
 
+	const handleAddOpenAIAccount = async (params: {
+		name: string;
+		apiKey: string;
+	}) => {
+		try {
+			await api.addOpenAIAccount(params);
+			await loadAccounts();
+			setAdding(false);
+			setActionError(null);
+		} catch (err) {
+			setActionError(formatError(err));
+			throw err;
+		}
+	};
+
 	const handleRemoveAccount = (name: string) => {
 		setConfirmDelete({ show: true, accountName: name, confirmInput: "" });
 	};
@@ -164,7 +179,9 @@ export function AccountsTab() {
 					<div className="flex items-center justify-between">
 						<div>
 							<CardTitle>Accounts</CardTitle>
-							<CardDescription>Manage your Claude accounts</CardDescription>
+							<CardDescription>
+								Manage your Claude and OpenAI accounts
+							</CardDescription>
 						</div>
 						{!adding && (
 							<Button onClick={() => setAdding(true)} size="sm">
@@ -179,6 +196,7 @@ export function AccountsTab() {
 						<AccountAddForm
 							onAddAccount={handleAddAccount}
 							onCompleteAccount={handleCompleteAccount}
+							onAddOpenAIAccount={handleAddOpenAIAccount}
 							onCancel={() => {
 								setAdding(false);
 								setActionError(null);
