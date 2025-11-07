@@ -6,8 +6,27 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(bun run lint:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(curl:*)",
+      "Bash(mkdir:*)",
+      "Bash(tauri:*)",
+      "Bash(powershell:*)",
+      "Bash(rm:*)",
+      "Bash(timeout:*)",
+      "Bash(bun start:*)",
+      "Bash(taskkill:*)",
+      "Bash(cargo clean:*)",
+      "Bash(cargo build:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(cmd /C:*)",
+      "Bash(cargo check:*)",
+      "Bash(echo $USERPROFILE)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "viktor"
+  ],
+  "enableAllProjectMcpServers": true
 }
