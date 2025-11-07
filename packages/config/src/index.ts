@@ -13,6 +13,7 @@ export interface RuntimeConfig {
 	retry: { attempts: number; delayMs: number; backoff: number };
 	sessionDurationMs: number;
 	port: number;
+	requireApiKey?: boolean;
 }
 
 export interface ConfigData {
@@ -154,6 +155,10 @@ export class Config extends EventEmitter {
 		}
 		if (process.env.PORT) {
 			defaults.port = parseInt(process.env.PORT);
+		}
+		if (process.env.REQUIRE_API_KEY) {
+			defaults.requireApiKey =
+				process.env.REQUIRE_API_KEY.toLowerCase() === "true";
 		}
 
 		// Override with config file settings if present

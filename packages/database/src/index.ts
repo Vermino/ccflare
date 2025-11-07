@@ -8,3 +8,10 @@ export { DatabaseFactory } from "./factory";
 export { ensureSchema, runMigrations } from "./migrations";
 export { resolveDbPath } from "./paths";
 export { analyzeIndexUsage } from "./performance-indexes";
+// Re-export API key types
+export type {
+	ApiKey,
+	CreateApiKeyParams,
+	CreateApiKeyResult,
+} from "./repositories/api-key.repository";
+export { ApiKeyRepository } from "./repositories/api-key.repository";

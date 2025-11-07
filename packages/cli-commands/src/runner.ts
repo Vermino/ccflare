@@ -11,6 +11,14 @@ import {
 	resumeAccount,
 } from "./commands/account";
 import { analyzePerformance } from "./commands/analyze";
+import {
+	createApiKey,
+	deleteApiKey,
+	disableApiKey,
+	enableApiKey,
+	listApiKeys,
+	updateApiKeyLimits,
+} from "./commands/api-key";
 import { getHelpText } from "./commands/help";
 import { clearRequestHistory, resetAllStats } from "./commands/stats";
 
@@ -34,6 +42,9 @@ export async function runCli(argv: string[]): Promise<void> {
 				mode: { type: "string" },
 				tier: { type: "string" },
 				force: { type: "boolean" },
+				rpm: { type: "string" },
+				tpm: { type: "string" },
+				daily: { type: "string" },
 			},
 		});
 
@@ -170,6 +181,112 @@ export async function runCli(argv: string[]): Promise<void> {
 			case "analyze": {
 				const db = dbOps.getDatabase();
 				analyzePerformance(db);
+				break;
+			}
+
+			case "api-key:create": {
+				const name = positionals[1];
+				if (!name) {
+					console.error("Error: API key name is required");
+					console.log(
+						"Usage: ccflare-cli api-key:create <name> [--rpm <limit>] [--tpm <limit>] [--daily <limit>]",
+					);
+					process.exit(1);
+				}
+
+				const rpm = values.rpm ? parseInt(values.rpm as string) : undefined;
+				const tpm = values.tpm ? parseInt(values.tpm as string) : undefined;
+				const daily = values.daily
+					? parseInt(values.daily as string)
+					: undefined;
+
+				await createApiKey(dbOps, {
+					name,
+					rateLimitRpm: rpm,
+					rateLimitTpm: tpm,
+					rateLimitRequestsPerDay: daily,
+				});
+				break;
+			}
+
+			case "api-key:list": {
+				const apiKeys = listApiKeys(dbOps);
+
+				if (apiKeys.length === 0) {
+					console.log("No API keys found");
+				} else {
+					console.log(`\nAPI Keys (${apiKeys.length}):`);
+					console.log("─".repeat(120));
+
+					// Header
+					console.log(
+						"Name".padEnd(20) +
+							"Key Suffix".padEnd(12) +
+							"Status".padEnd(10) +
+							"Requests".padEnd(12) +
+							"Tokens".padEnd(12) +
+							"Cost".padEnd(10) +
+							"Created".padEnd(12) +
+							"Last Used",
+					);
+					console.log("─".repeat(120));
+
+					// Rows
+					for (const key of apiKeys) {
+						const status = key.isActive ? "Active" : "Inactive";
+						const created = key.createdAt.toLocaleDateString();
+						const lastUsed = key.lastUsed
+							? key.lastUsed.toLocaleDateString()
+							: "Never";
+
+						console.log(
+							key.name.padEnd(20) +
+								`...${key.prefixLast8}`.padEnd(12) +
+								status.padEnd(10) +
+								key.totalRequests.toString().padEnd(12) +
+								key.totalTokens.toString().padEnd(12) +
+								`$${key.totalCostUsd.toFixed(4)}`.padEnd(10) +
+								created.padEnd(12) +
+								lastUsed,
+						);
+					}
+				}
+				break;
+			}
+
+			case "api-key:delete": {
+				const nameOrId = positionals[1];
+				if (!nameOrId) {
+					console.error("Error: API key name or ID is required");
+					console.log("Usage: ccflare-cli api-key:delete <name|id> [--force]");
+					process.exit(1);
+				}
+
+				await deleteApiKey(dbOps, nameOrId);
+				break;
+			}
+
+			case "api-key:enable": {
+				const nameOrId = positionals[1];
+				if (!nameOrId) {
+					console.error("Error: API key name or ID is required");
+					console.log("Usage: ccflare-cli api-key:enable <name|id>");
+					process.exit(1);
+				}
+
+				enableApiKey(dbOps, nameOrId);
+				break;
+			}
+
+			case "api-key:disable": {
+				const nameOrId = positionals[1];
+				if (!nameOrId) {
+					console.error("Error: API key name or ID is required");
+					console.log("Usage: ccflare-cli api-key:disable <name|id>");
+					process.exit(1);
+				}
+
+				disableApiKey(dbOps, nameOrId);
 				break;
 			}
 

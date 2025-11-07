@@ -90,6 +90,34 @@ export function ensureSchema(db: Database): void {
 			updated_at INTEGER NOT NULL
 		)
 	`);
+
+	// Create api_keys table for multi-user access control
+	db.run(`
+		CREATE TABLE IF NOT EXISTS api_keys (
+			id TEXT PRIMARY KEY,
+			name TEXT UNIQUE NOT NULL,
+			hashed_key TEXT UNIQUE NOT NULL,
+			prefix_last_8 TEXT NOT NULL,
+			created_at INTEGER NOT NULL,
+			last_used INTEGER,
+			usage_count INTEGER DEFAULT 0,
+			is_active INTEGER DEFAULT 1,
+			total_requests INTEGER DEFAULT 0,
+			total_tokens INTEGER DEFAULT 0,
+			total_cost_usd REAL DEFAULT 0,
+			rate_limit_rpm INTEGER,
+			rate_limit_tpm INTEGER,
+			rate_limit_requests_per_day INTEGER
+		)
+	`);
+
+	// Create indexes for faster API key lookups
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_api_keys_hashed ON api_keys(hashed_key)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active)`,
+	);
 }
 
 export function runMigrations(db: Database): void {

@@ -7,6 +7,7 @@ import { ensureSchema, runMigrations } from "./migrations";
 import { resolveDbPath } from "./paths";
 import { AccountRepository } from "./repositories/account.repository";
 import { AgentPreferenceRepository } from "./repositories/agent-preference.repository";
+import { ApiKeyRepository } from "./repositories/api-key.repository";
 import { OAuthRepository } from "./repositories/oauth.repository";
 import {
 	type RequestData,
@@ -34,6 +35,7 @@ export class DatabaseOperations implements StrategyStore, Disposable {
 	private strategy: StrategyRepository;
 	private stats: StatsRepository;
 	private agentPreferences: AgentPreferenceRepository;
+	private apiKeys: ApiKeyRepository;
 
 	constructor(dbPath?: string) {
 		const resolvedPath = dbPath ?? resolveDbPath();
@@ -59,6 +61,7 @@ export class DatabaseOperations implements StrategyStore, Disposable {
 		this.strategy = new StrategyRepository(this.db);
 		this.stats = new StatsRepository(this.db);
 		this.agentPreferences = new AgentPreferenceRepository(this.db);
+		this.apiKeys = new ApiKeyRepository(this.db);
 	}
 
 	setRuntimeConfig(runtime: RuntimeConfig): void {
@@ -351,6 +354,11 @@ export class DatabaseOperations implements StrategyStore, Disposable {
 
 	setBulkAgentPreferences(agentIds: string[], model: string): void {
 		this.agentPreferences.setBulkPreferences(agentIds, model);
+	}
+
+	// API key operations delegated to repository
+	getApiKeyRepository() {
+		return this.apiKeys;
 	}
 
 	close(): void {

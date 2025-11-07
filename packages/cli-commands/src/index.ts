@@ -3,6 +3,7 @@ export * from "./commands/account";
 export * from "./commands/analyze";
 export * from "./commands/help";
 export * from "./commands/stats";
+export * from "./commands/api-key";
 
 // Export prompts
 export * from "./prompts/index";

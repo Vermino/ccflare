@@ -11,6 +11,7 @@ import type { Provider, TokenRefreshResult } from "@ccflare/providers";
 import { feedbackMiddleware } from "./handlers/feedback-middleware";
 import { forwardToClient } from "./response-handler";
 import type { ControlMessage } from "./worker-messages";
+import { requireApiKey, authenticateApiKey } from "./handlers/api-key-auth";
 
 export interface ProxyContext {
 	strategy: LoadBalancingStrategy;
@@ -125,6 +126,18 @@ export async function handleProxy(
 		path: url.pathname,
 		timestamp: Date.now(),
 	};
+
+	// API Key Authentication (if required)
+	if (ctx.runtime.requireApiKey) {
+		const authError = requireApiKey(req.headers, ctx.dbOps);
+		if (authError) {
+			return authError;
+		}
+	}
+
+	// Track API key usage for authenticated requests
+	const apiKeyAuth = authenticateApiKey(req.headers, ctx.dbOps);
+	const apiKeyId = apiKeyAuth.apiKey?.id;
 
 	// Check if provider can handle this request
 	if (!ctx.provider.canHandle(url.pathname)) {
