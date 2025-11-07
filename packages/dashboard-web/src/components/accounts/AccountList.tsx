@@ -1,5 +1,5 @@
 import type { Account } from "../../api";
-import { AccountListItem } from "./AccountListItem";
+import { EnhancedAccountListItem } from "./EnhancedAccountListItem";
 
 interface AccountListProps {
 	accounts: Account[] | undefined;
@@ -38,7 +38,7 @@ export function AccountList({
 	return (
 		<div className="space-y-2">
 			{accounts.map((account) => (
-				<AccountListItem
+				<EnhancedAccountListItem
 					key={account.name}
 					account={account}
 					isActive={account.id === mostRecentAccountId}

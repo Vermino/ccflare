@@ -46,7 +46,13 @@ export function createAgentsListHandler(dbOps: DatabaseOperations) {
 			});
 		} catch (error) {
 			log.error("Error fetching agents:", error);
-			return jsonResponse({ error: "Failed to fetch agents" }, 500);
+			return jsonResponse(
+				{
+					error: "Failed to fetch agents",
+					details: error instanceof Error ? error.message : String(error),
+				},
+				500,
+			);
 		}
 	};
 }

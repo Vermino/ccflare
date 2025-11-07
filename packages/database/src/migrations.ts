@@ -170,6 +170,135 @@ export function runMigrations(db: Database): void {
 		log.info("Added rate_limit_remaining column to accounts table");
 	}
 
+	// Add detailed Anthropic rate limit columns
+	if (!accountsColumnNames.includes("requests_limit")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN requests_limit INTEGER").run();
+		log.info("Added requests_limit column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("requests_remaining")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN requests_remaining INTEGER",
+		).run();
+		log.info("Added requests_remaining column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("requests_reset")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN requests_reset INTEGER").run();
+		log.info("Added requests_reset column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("tokens_limit")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN tokens_limit INTEGER").run();
+		log.info("Added tokens_limit column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("tokens_remaining")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN tokens_remaining INTEGER",
+		).run();
+		log.info("Added tokens_remaining column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("tokens_reset")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN tokens_reset INTEGER").run();
+		log.info("Added tokens_reset column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("input_tokens_limit")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN input_tokens_limit INTEGER",
+		).run();
+		log.info("Added input_tokens_limit column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("input_tokens_remaining")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN input_tokens_remaining INTEGER",
+		).run();
+		log.info("Added input_tokens_remaining column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("input_tokens_reset")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN input_tokens_reset INTEGER",
+		).run();
+		log.info("Added input_tokens_reset column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("output_tokens_limit")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN output_tokens_limit INTEGER",
+		).run();
+		log.info("Added output_tokens_limit column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("output_tokens_remaining")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN output_tokens_remaining INTEGER",
+		).run();
+		log.info("Added output_tokens_remaining column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("output_tokens_reset")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN output_tokens_reset INTEGER",
+		).run();
+		log.info("Added output_tokens_reset column to accounts table");
+	}
+
+	// Add new unified rate limit columns
+	if (!accountsColumnNames.includes("unified_5h_status")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN unified_5h_status TEXT").run();
+		log.info("Added unified_5h_status column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("unified_5h_reset")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN unified_5h_reset INTEGER",
+		).run();
+		log.info("Added unified_5h_reset column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("unified_7d_status")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN unified_7d_status TEXT").run();
+		log.info("Added unified_7d_status column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("unified_7d_reset")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN unified_7d_reset INTEGER",
+		).run();
+		log.info("Added unified_7d_reset column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("unified_fallback_percentage")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN unified_fallback_percentage REAL",
+		).run();
+		log.info("Added unified_fallback_percentage column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("unified_representative_claim")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN unified_representative_claim TEXT",
+		).run();
+		log.info("Added unified_representative_claim column to accounts table");
+	}
+
+	if (!accountsColumnNames.includes("unified_overage_disabled_reason")) {
+		db.prepare(
+			"ALTER TABLE accounts ADD COLUMN unified_overage_disabled_reason TEXT",
+		).run();
+		log.info("Added unified_overage_disabled_reason column to accounts table");
+	}
+
+	// Add organization_id column for fetching real usage from Claude API
+	if (!accountsColumnNames.includes("organization_id")) {
+		db.prepare("ALTER TABLE accounts ADD COLUMN organization_id TEXT").run();
+		log.info("Added organization_id column to accounts table");
+	}
+
 	// Check columns in requests table
 	const requestsInfo = db
 		.prepare("PRAGMA table_info(requests)")
@@ -269,4 +398,136 @@ export function runMigrations(db: Database): void {
 
 	// Add performance indexes
 	addPerformanceIndexes(db);
+
+	// Add feedback system tables
+	ensureFeedbackSchema(db);
+}
+
+export function ensureFeedbackSchema(db: Database): void {
+	// Create projects table for tracking Claude Code projects
+	db.run(`
+		CREATE TABLE IF NOT EXISTS projects (
+			id INTEGER PRIMARY KEY,
+			name TEXT NOT NULL,
+			path TEXT UNIQUE NOT NULL,
+			claude_file_path TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			last_activity DATETIME,
+			total_sessions INTEGER DEFAULT 0,
+			avg_satisfaction REAL DEFAULT 0.0
+		)
+	`);
+
+	// Create agent_versions table for version management
+	db.run(`
+		CREATE TABLE IF NOT EXISTS agent_versions (
+			id INTEGER PRIMARY KEY,
+			agent_type TEXT NOT NULL,
+			version TEXT NOT NULL,
+			model_config TEXT, -- JSON stored as TEXT
+			performance_metrics TEXT, -- JSON stored as TEXT
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			created_by TEXT,
+			is_active BOOLEAN DEFAULT FALSE,
+			parent_version TEXT,
+			UNIQUE(agent_type, version)
+		)
+	`);
+
+	// Create agent_sessions table for session tracking
+	db.run(`
+		CREATE TABLE IF NOT EXISTS agent_sessions (
+			id INTEGER PRIMARY KEY,
+			project_id INTEGER REFERENCES projects(id),
+			user_id TEXT,
+			agent_type TEXT NOT NULL,
+			agent_version TEXT NOT NULL,
+			session_start DATETIME DEFAULT CURRENT_TIMESTAMP,
+			session_end DATETIME,
+			request_count INTEGER DEFAULT 0,
+			tools_used TEXT, -- JSON array stored as TEXT
+			task_description TEXT,
+			success_rating INTEGER, -- 1-5 scale
+			completion_time_ms INTEGER,
+			error_count INTEGER DEFAULT 0,
+			FOREIGN KEY (agent_type, agent_version) REFERENCES agent_versions(agent_type, version)
+		)
+	`);
+
+	// Create session_feedback table for detailed feedback collection
+	db.run(`
+		CREATE TABLE IF NOT EXISTS session_feedback (
+			id INTEGER PRIMARY KEY,
+			session_id INTEGER REFERENCES agent_sessions(id),
+			feedback_type TEXT NOT NULL, -- 'success', 'error', 'user_rating', 'improvement_suggestion'
+			feedback_data TEXT NOT NULL, -- JSON stored as TEXT
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			source TEXT DEFAULT 'user' -- 'user', 'system', 'llm_reviewer'
+		)
+	`);
+
+	// Create performance_reviews table for LLM review system
+	db.run(`
+		CREATE TABLE IF NOT EXISTS performance_reviews (
+			id INTEGER PRIMARY KEY,
+			agent_type TEXT NOT NULL,
+			current_version TEXT NOT NULL,
+			review_period_start DATETIME,
+			review_period_end DATETIME,
+			sessions_analyzed INTEGER,
+			review_summary TEXT, -- JSON stored as TEXT
+			suggested_improvements TEXT, -- JSON stored as TEXT
+			new_version_proposed TEXT,
+			user_response TEXT, -- 'accepted', 'rejected', 'pending'
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`);
+
+	// Create user_agent_preferences table for user preferences
+	db.run(`
+		CREATE TABLE IF NOT EXISTS user_agent_preferences (
+			id INTEGER PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			project_id INTEGER REFERENCES projects(id),
+			agent_type TEXT NOT NULL,
+			preferred_version TEXT,
+			review_cadence TEXT DEFAULT 'weekly', -- 'daily', 'weekly', 'monthly', 'manual'
+			auto_update BOOLEAN DEFAULT FALSE,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user_id, project_id, agent_type)
+		)
+	`);
+
+	// Create indexes for better performance
+	db.run(`CREATE INDEX IF NOT EXISTS idx_projects_path ON projects(path)`);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_projects_last_activity ON projects(last_activity DESC)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_agent_versions_type_active ON agent_versions(agent_type, is_active)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_agent_sessions_project ON agent_sessions(project_id)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_agent_sessions_user_agent ON agent_sessions(user_id, agent_type)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_agent_sessions_start ON agent_sessions(session_start DESC)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_session_feedback_session ON session_feedback(session_id)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_session_feedback_type ON session_feedback(feedback_type)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_performance_reviews_agent ON performance_reviews(agent_type, current_version)`,
+	);
+	db.run(
+		`CREATE INDEX IF NOT EXISTS idx_user_preferences_user_project ON user_agent_preferences(user_id, project_id)`,
+	);
+
+	log.info("Feedback system database schema initialized");
 }

@@ -54,15 +54,53 @@ export function updateAccountMetadata(
 
 	// Extract and update rate limit info for every response
 	const rateLimitInfo = ctx.provider.parseRateLimit(response);
-	// Only update rate limit metadata when we have actual rate limit headers
-	if (rateLimitInfo.statusHeader) {
-		const status = rateLimitInfo.statusHeader;
+
+	// DEBUG
+	if (rateLimitInfo.unifiedFallbackPercentage !== undefined) {
+		log.info(
+			`📊 Rate limit data: fallback=${rateLimitInfo.unifiedFallbackPercentage}, status=${rateLimitInfo.statusHeader}`,
+		);
+	}
+
+	// Update rate limit metadata when we have any rate limit data
+	if (
+		rateLimitInfo.statusHeader ||
+		rateLimitInfo.unifiedFallbackPercentage !== undefined
+	) {
+		const status = rateLimitInfo.statusHeader || "unknown";
+		log.info(`💾 Enqueueing database update for ${account.name}`);
 		ctx.asyncWriter.enqueue(() =>
 			ctx.dbOps.updateAccountRateLimitMeta(
 				account.id,
 				status,
 				rateLimitInfo.resetTime ?? null,
 				rateLimitInfo.remaining,
+				{
+					requestsLimit: rateLimitInfo.requestsLimit ?? null,
+					requestsRemaining: rateLimitInfo.requestsRemaining ?? null,
+					requestsReset: rateLimitInfo.requestsReset ?? null,
+					tokensLimit: rateLimitInfo.tokensLimit ?? null,
+					tokensRemaining: rateLimitInfo.tokensRemaining ?? null,
+					tokensReset: rateLimitInfo.tokensReset ?? null,
+					inputTokensLimit: rateLimitInfo.inputTokensLimit ?? null,
+					inputTokensRemaining: rateLimitInfo.inputTokensRemaining ?? null,
+					inputTokensReset: rateLimitInfo.inputTokensReset ?? null,
+					outputTokensLimit: rateLimitInfo.outputTokensLimit ?? null,
+					outputTokensRemaining: rateLimitInfo.outputTokensRemaining ?? null,
+					outputTokensReset: rateLimitInfo.outputTokensReset ?? null,
+					// New unified rate limit fields
+					unifiedFiveHourStatus: rateLimitInfo.unifiedFiveHourStatus ?? null,
+					unifiedFiveHourReset: rateLimitInfo.unifiedFiveHourReset ?? null,
+					unifiedSevenDayStatus: rateLimitInfo.unifiedSevenDayStatus ?? null,
+					unifiedSevenDayReset: rateLimitInfo.unifiedSevenDayReset ?? null,
+					unifiedFallbackPercentage:
+						rateLimitInfo.unifiedFallbackPercentage ?? null,
+					unifiedRepresentativeClaim:
+						rateLimitInfo.unifiedRepresentativeClaim ?? null,
+					unifiedOverageDisabledReason:
+						rateLimitInfo.unifiedOverageDisabledReason ?? null,
+					organizationId: rateLimitInfo.organizationId ?? null,
+				},
 			),
 		);
 	}

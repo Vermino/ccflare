@@ -127,7 +127,7 @@ Examples:
 	}
 
 	// Default: Launch interactive TUI with auto-started server
-	await ensureServer(parsed.port || 8080);
+	await ensureServer(parsed.port || 8081);
 	const { waitUntilExit } = render(React.createElement(App));
 	await waitUntilExit();
 

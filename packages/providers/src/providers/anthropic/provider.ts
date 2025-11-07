@@ -100,46 +100,167 @@ export class AnthropicProvider extends BaseProvider {
 	}
 
 	parseRateLimit(response: Response): RateLimitInfo {
-		// Check for unified rate limit headers
-		const statusHeader = response.headers.get(
-			"anthropic-ratelimit-unified-status",
-		);
-		const resetHeader = response.headers.get(
-			"anthropic-ratelimit-unified-reset",
-		);
-		const remainingHeader = response.headers.get(
+		log.info("🚨 parseRateLimit CALLED!");
+		// Extract all Anthropic rate limit headers
+		const headers = response.headers;
+
+		// Note: Anthropic sends unified rate limit headers for OAuth authentication.
+		// These headers include usage percentage and window-specific limits.
+
+		// Extract organization ID for real usage tracking
+		const organizationId = headers.get("anthropic-organization-id");
+		if (organizationId) {
+			log.info(`🏢 Found organization ID: ${organizationId}`);
+		}
+
+		// Unified headers (legacy)
+		const statusHeader = headers.get("anthropic-ratelimit-unified-status");
+		const unifiedReset = headers.get("anthropic-ratelimit-unified-reset");
+		const unifiedRemaining = headers.get(
 			"anthropic-ratelimit-unified-remaining",
 		);
 
-		if (statusHeader || resetHeader) {
-			const resetTime = resetHeader ? Number(resetHeader) * 1000 : undefined; // Convert to ms
-			const remaining = remainingHeader ? Number(remainingHeader) : undefined;
+		// New unified headers (5-hour and 7-day windows)
+		const fiveHourStatus = headers.get("anthropic-ratelimit-unified-5h-status");
+		const fiveHourReset = headers.get("anthropic-ratelimit-unified-5h-reset");
+		const sevenDayStatus = headers.get("anthropic-ratelimit-unified-7d-status");
+		const sevenDayReset = headers.get("anthropic-ratelimit-unified-7d-reset");
+		const fallbackPercentage = headers.get(
+			"anthropic-ratelimit-unified-fallback-percentage",
+		);
+		const representativeClaim = headers.get(
+			"anthropic-ratelimit-unified-representative-claim",
+		);
+		const overageDisabledReason = headers.get(
+			"anthropic-ratelimit-unified-overage-disabled-reason",
+		);
 
-			// Only mark as rate limited for hard limit statuses or 429
-			const isRateLimited =
-				HARD_LIMIT_STATUSES.has(statusHeader || "") || response.status === 429;
+		// DEBUG LOG - ALWAYS log to see what we're getting
+		log.info(
+			`🔍 PARSING RATE LIMIT - Status: ${statusHeader}, Fallback: ${fallbackPercentage}, Claim: ${representativeClaim}`,
+		);
+		if (fallbackPercentage) {
+			log.info(
+				`🔍 FOUND USAGE: ${fallbackPercentage} (${representativeClaim})`,
+			);
+			// Dump ALL rate limit headers for debugging
+			log.info(`📋 ALL RATE LIMIT HEADERS:`);
+			log.info(`  - 5h-status: ${fiveHourStatus}`);
+			log.info(`  - 5h-reset: ${fiveHourReset}`);
+			log.info(`  - 7d-status: ${sevenDayStatus}`);
+			log.info(`  - 7d-reset: ${sevenDayReset}`);
+			log.info(`  - fallback-%: ${fallbackPercentage}`);
+			log.info(`  - representative-claim: ${representativeClaim}`);
+			log.info(`  - overage-disabled-reason: ${overageDisabledReason}`);
+		}
+
+		// Request limits
+		const requestsLimit = headers.get("anthropic-ratelimit-requests-limit");
+		const requestsRemaining = headers.get(
+			"anthropic-ratelimit-requests-remaining",
+		);
+		const requestsReset = headers.get("anthropic-ratelimit-requests-reset");
+
+		// Token limits (total)
+		const tokensLimit = headers.get("anthropic-ratelimit-tokens-limit");
+		const tokensRemaining = headers.get("anthropic-ratelimit-tokens-remaining");
+		const tokensReset = headers.get("anthropic-ratelimit-tokens-reset");
+
+		// Input token limits
+		const inputTokensLimit = headers.get(
+			"anthropic-ratelimit-input-tokens-limit",
+		);
+		const inputTokensRemaining = headers.get(
+			"anthropic-ratelimit-input-tokens-remaining",
+		);
+		const inputTokensReset = headers.get(
+			"anthropic-ratelimit-input-tokens-reset",
+		);
+
+		// Output token limits
+		const outputTokensLimit = headers.get(
+			"anthropic-ratelimit-output-tokens-limit",
+		);
+		const outputTokensRemaining = headers.get(
+			"anthropic-ratelimit-output-tokens-remaining",
+		);
+		const outputTokensReset = headers.get(
+			"anthropic-ratelimit-output-tokens-reset",
+		);
+
+		// Determine if rate limited
+		const isRateLimited =
+			HARD_LIMIT_STATUSES.has(statusHeader || "") || response.status === 429;
+
+		// Parse reset time from unified or requests header
+		const resetTime = unifiedReset
+			? Number(unifiedReset) * 1000
+			: requestsReset
+				? new Date(requestsReset).getTime()
+				: undefined;
+
+		// Fall back to x-ratelimit-reset for 429 responses
+		if (response.status === 429 && !resetTime) {
+			const rateLimitReset = headers.get("x-ratelimit-reset");
+			const fallbackResetTime = rateLimitReset
+				? parseInt(rateLimitReset) * 1000
+				: Date.now() + 60000;
 
 			return {
-				isRateLimited,
-				resetTime,
+				isRateLimited: true,
+				resetTime: fallbackResetTime,
 				statusHeader: statusHeader || undefined,
-				remaining,
+				remaining: unifiedRemaining ? Number(unifiedRemaining) : undefined,
 			};
 		}
 
-		// Fall back to 429 status with x-ratelimit-reset header
-		if (response.status !== 429) {
-			return { isRateLimited: false };
-		}
-
-		const rateLimitReset = response.headers.get("x-ratelimit-reset");
-		const resetTime = rateLimitReset
-			? parseInt(rateLimitReset) * 1000
-			: Date.now() + 60000; // Default to 1 minute
-
 		return {
-			isRateLimited: true,
+			isRateLimited,
 			resetTime,
+			statusHeader: statusHeader || undefined,
+			remaining: unifiedRemaining ? Number(unifiedRemaining) : undefined,
+			// Detailed rate limit info - these are typically null for OAuth
+			requestsLimit: requestsLimit ? Number(requestsLimit) : undefined,
+			requestsRemaining: requestsRemaining
+				? Number(requestsRemaining)
+				: undefined,
+			requestsReset: requestsReset
+				? new Date(requestsReset).getTime()
+				: undefined,
+			tokensLimit: tokensLimit ? Number(tokensLimit) : undefined,
+			tokensRemaining: tokensRemaining ? Number(tokensRemaining) : undefined,
+			tokensReset: tokensReset ? new Date(tokensReset).getTime() : undefined,
+			inputTokensLimit: inputTokensLimit ? Number(inputTokensLimit) : undefined,
+			inputTokensRemaining: inputTokensRemaining
+				? Number(inputTokensRemaining)
+				: undefined,
+			inputTokensReset: inputTokensReset
+				? new Date(inputTokensReset).getTime()
+				: undefined,
+			outputTokensLimit: outputTokensLimit
+				? Number(outputTokensLimit)
+				: undefined,
+			outputTokensRemaining: outputTokensRemaining
+				? Number(outputTokensRemaining)
+				: undefined,
+			outputTokensReset: outputTokensReset
+				? new Date(outputTokensReset).getTime()
+				: undefined,
+			// New unified rate limit headers
+			unifiedFiveHourStatus: fiveHourStatus || undefined,
+			unifiedFiveHourReset: fiveHourReset
+				? Number(fiveHourReset) * 1000
+				: undefined,
+			unifiedSevenDayStatus: sevenDayStatus || undefined,
+			unifiedSevenDayReset: sevenDayReset
+				? Number(sevenDayReset) * 1000
+				: undefined,
+			unifiedFallbackPercentage: fallbackPercentage
+				? Number(fallbackPercentage)
+				: undefined,
+			unifiedRepresentativeClaim: representativeClaim || undefined,
+			unifiedOverageDisabledReason: overageDisabledReason || undefined,
+			organizationId: organizationId || undefined,
 		};
 	}
 

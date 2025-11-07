@@ -3,7 +3,7 @@ import { Config } from "@ccflare/config";
 async function getPort(): Promise<number> {
 	const config = new Config();
 	const runtime = config.getRuntime();
-	return runtime.port || 8080;
+	return runtime.port || 8081;
 }
 
 export async function getStrategy(): Promise<string> {

@@ -8,3 +8,37 @@ dist/
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
+
+# Rust/Cargo build artifacts
+target/
+**/target/
+Cargo.lock
+
+# Tauri generated files
+**/src-tauri/gen/
+
+# IDE files
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local settings
+.claude/settings.local.json
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Build outputs
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+*.dmg
+*.msi

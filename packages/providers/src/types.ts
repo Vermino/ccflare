@@ -11,6 +11,28 @@ export interface RateLimitInfo {
 	resetTime?: number;
 	statusHeader?: string;
 	remaining?: number;
+	// Detailed Anthropic rate limit headers
+	requestsLimit?: number;
+	requestsRemaining?: number;
+	requestsReset?: number;
+	tokensLimit?: number;
+	tokensRemaining?: number;
+	tokensReset?: number;
+	inputTokensLimit?: number;
+	inputTokensRemaining?: number;
+	inputTokensReset?: number;
+	outputTokensLimit?: number;
+	outputTokensRemaining?: number;
+	outputTokensReset?: number;
+	// New unified rate limit headers (Anthropic)
+	unifiedFiveHourStatus?: string;
+	unifiedFiveHourReset?: number;
+	unifiedSevenDayStatus?: string;
+	unifiedSevenDayReset?: number;
+	unifiedFallbackPercentage?: number; // Usage percentage (0-1)
+	unifiedRepresentativeClaim?: string; // "five_hour" or "seven_day"
+	unifiedOverageDisabledReason?: string;
+	organizationId?: string; // Organization ID for real usage tracking
 }
 
 export interface Provider {

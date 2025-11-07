@@ -21,6 +21,19 @@ export type AccountRow = {
 	rate_limit_reset?: number | null;
 	rate_limit_status?: string | null;
 	rate_limit_remaining?: number | null;
+	// Detailed Anthropic rate limit tracking
+	requests_limit?: number | null;
+	requests_remaining?: number | null;
+	requests_reset?: number | null;
+	tokens_limit?: number | null;
+	tokens_remaining?: number | null;
+	tokens_reset?: number | null;
+	input_tokens_limit?: number | null;
+	input_tokens_remaining?: number | null;
+	input_tokens_reset?: number | null;
+	output_tokens_limit?: number | null;
+	output_tokens_remaining?: number | null;
+	output_tokens_reset?: number | null;
 };
 
 export type RequestRow = {
@@ -66,6 +79,19 @@ export interface Account {
 	rate_limit_reset: number | null;
 	rate_limit_status: string | null;
 	rate_limit_remaining: number | null;
+	// Detailed Anthropic rate limit tracking
+	requests_limit: number | null;
+	requests_remaining: number | null;
+	requests_reset: number | null;
+	tokens_limit: number | null;
+	tokens_remaining: number | null;
+	tokens_reset: number | null;
+	input_tokens_limit: number | null;
+	input_tokens_remaining: number | null;
+	input_tokens_reset: number | null;
+	output_tokens_limit: number | null;
+	output_tokens_remaining: number | null;
+	output_tokens_reset: number | null;
 }
 
 export interface Request {
@@ -127,6 +153,19 @@ export function toAccount(row: AccountRow): Account {
 		rate_limit_reset: row.rate_limit_reset || null,
 		rate_limit_status: row.rate_limit_status || null,
 		rate_limit_remaining: row.rate_limit_remaining || null,
+		// Detailed Anthropic rate limit tracking
+		requests_limit: row.requests_limit || null,
+		requests_remaining: row.requests_remaining || null,
+		requests_reset: row.requests_reset || null,
+		tokens_limit: row.tokens_limit || null,
+		tokens_remaining: row.tokens_remaining || null,
+		tokens_reset: row.tokens_reset || null,
+		input_tokens_limit: row.input_tokens_limit || null,
+		input_tokens_remaining: row.input_tokens_remaining || null,
+		input_tokens_reset: row.input_tokens_reset || null,
+		output_tokens_limit: row.output_tokens_limit || null,
+		output_tokens_remaining: row.output_tokens_remaining || null,
+		output_tokens_reset: row.output_tokens_reset || null,
 	};
 }
 

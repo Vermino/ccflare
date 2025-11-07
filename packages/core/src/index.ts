@@ -1,4 +1,7 @@
 // Re-export only used items from each module
+
+// Re-export StrategyStore from types package
+export type { StrategyStore } from "@ccflare/types";
 export {
 	BUFFER_SIZES,
 	CACHE,
@@ -7,7 +10,6 @@ export {
 	NETWORK,
 	TIME_CONSTANTS,
 } from "./constants";
-
 export {
 	logError,
 	OAuthError,
@@ -17,7 +19,6 @@ export {
 	TokenRefreshError,
 	ValidationError,
 } from "./errors";
-
 export * from "./lifecycle";
 export {
 	CLAUDE_MODEL_IDS,
@@ -37,12 +38,6 @@ export {
 } from "./pricing";
 export * from "./request-events";
 export * from "./strategy";
-export {
-	patterns,
-	sanitizers,
-	validateNumber,
-	validateString,
-} from "./validation";
 
 export type {
 	Account,
@@ -52,6 +47,12 @@ export type {
 	RequestRow,
 } from "./types";
 export { NO_ACCOUNT_ID, toAccount, toRequest } from "./types";
+export {
+	patterns,
+	sanitizers,
+	validateNumber,
+	validateString,
+} from "./validation";
 
-// Re-export StrategyStore from types package
-export type { StrategyStore } from "@ccflare/types";
+// Note: BandwidthService is not exported here to avoid Node.js dependencies in web builds
+// It should be imported directly in server-side code: import { BandwidthService } from "@ccflare/core/bandwidth-service"

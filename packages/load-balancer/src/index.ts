@@ -1,8 +1,8 @@
 export {
-	SessionStrategy,
-	RoundRobinStrategy,
+	createStrategy,
 	LeastUsedStrategy,
 	ModelAwareStrategy,
+	RoundRobinStrategy,
+	SessionStrategy,
 	WeightedStrategy,
-	createStrategy,
 } from "./strategies";

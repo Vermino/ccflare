@@ -17,27 +17,39 @@ export class AsyncDbWriter implements Disposable {
 
 	enqueue(job: DbJob): void {
 		this.queue.push(job);
+		logger.info(
+			`📥 Job enqueued. Queue size: ${this.queue.length}, running: ${this.running}`,
+		);
 		// Immediately try to process if not already running
 		void this.processQueue();
 	}
 
 	private async processQueue(): Promise<void> {
-		if (this.running || this.queue.length === 0) {
+		if (this.running) {
+			logger.info(`⏸️ Already running, skipping`);
+			return;
+		}
+		if (this.queue.length === 0) {
 			return;
 		}
 
 		this.running = true;
+		const jobCount = this.queue.length;
+		logger.info(`⚙️ Processing ${jobCount} queued database jobs`);
 
 		try {
+			let processed = 0;
 			while (this.queue.length > 0) {
 				const job = this.queue.shift();
 				if (!job) continue;
 				try {
 					await job();
+					processed++;
 				} catch (error) {
 					logger.error("Failed to execute DB job", error);
 				}
 			}
+			logger.info(`✅ Processed ${processed}/${jobCount} database jobs`);
 		} finally {
 			this.running = false;
 		}

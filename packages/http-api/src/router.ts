@@ -1,3 +1,4 @@
+import type { Database } from "bun:sqlite";
 import { validateNumber } from "@ccflare/core";
 import {
 	createAccountAddHandler,
@@ -9,6 +10,12 @@ import {
 	createAccountTierUpdateHandler,
 } from "./handlers/accounts";
 import {
+	createAgentVersionCreateHandler,
+	createAgentVersionRollbackHandler,
+	createAgentVersionsListHandler,
+	createAgentVersionUpdateHandler,
+} from "./handlers/agent-versions";
+import {
 	createAgentPreferenceUpdateHandler,
 	createAgentsListHandler,
 	createBulkAgentPreferenceUpdateHandler,
@@ -16,7 +23,13 @@ import {
 } from "./handlers/agents";
 import { createAgentUpdateHandler } from "./handlers/agents-update";
 import { createAnalyticsHandler } from "./handlers/analytics";
+import { createBandwidthHandler } from "./handlers/bandwidth";
+import { handleClaudeUsage } from "./handlers/claude-usage";
 import { createConfigHandlers } from "./handlers/config";
+import {
+	createFeedbackSubmissionHandler,
+	createFeedbackSummaryHandler,
+} from "./handlers/feedback";
 import { createHealthHandler } from "./handlers/health";
 import { createLogsStreamHandler } from "./handlers/logs";
 import { createLogsHistoryHandler } from "./handlers/logs-history";
@@ -24,6 +37,17 @@ import {
 	createOAuthCallbackHandler,
 	createOAuthInitHandler,
 } from "./handlers/oauth";
+import {
+	createPerformanceReviewsListHandler,
+	createReviewResponseHandler,
+	createReviewTriggerHandler,
+} from "./handlers/performance-reviews";
+import {
+	createProjectDetailHandler,
+	createProjectFeedbackHandler,
+	createProjectSessionsHandler,
+	createProjectsListHandler,
+} from "./handlers/projects";
 import {
 	createRequestsDetailHandler,
 	createRequestsSummaryHandler,
@@ -54,7 +78,7 @@ export class APIRouter {
 
 		// Create handlers
 		const healthHandler = createHealthHandler(db, config);
-		const statsHandler = createStatsHandler(dbOps);
+		const statsHandler = createStatsHandler(db as Database);
 		const statsResetHandler = createStatsResetHandler(dbOps);
 		const accountsHandler = createAccountsListHandler(db);
 		const accountAddHandler = createAccountAddHandler(dbOps, config);
@@ -66,11 +90,29 @@ export class APIRouter {
 		const logsStreamHandler = createLogsStreamHandler();
 		const logsHistoryHandler = createLogsHistoryHandler();
 		const analyticsHandler = createAnalyticsHandler(this.context);
+		const bandwidthHandler = createBandwidthHandler(db);
 		const oauthInitHandler = createOAuthInitHandler(dbOps);
 		const oauthCallbackHandler = createOAuthCallbackHandler(dbOps);
 		const agentsHandler = createAgentsListHandler(dbOps);
 		const workspacesHandler = createWorkspacesListHandler();
 		const requestsStreamHandler = createRequestsStreamHandler();
+
+		// Feedback system handlers
+		const projectsListHandler = createProjectsListHandler(db);
+		const _projectDetailHandler = createProjectDetailHandler(db);
+		const _projectFeedbackHandler = createProjectFeedbackHandler(dbOps);
+		const _projectSessionsHandler = createProjectSessionsHandler(db);
+		const feedbackSubmissionHandler = createFeedbackSubmissionHandler(dbOps);
+		const feedbackSummaryHandler = createFeedbackSummaryHandler(db);
+		const agentVersionsListHandler = createAgentVersionsListHandler(db);
+		const agentVersionCreateHandler = createAgentVersionCreateHandler(dbOps);
+		const _agentVersionUpdateHandler = createAgentVersionUpdateHandler(dbOps);
+		const _agentVersionRollbackHandler =
+			createAgentVersionRollbackHandler(dbOps);
+		const performanceReviewsListHandler =
+			createPerformanceReviewsListHandler(db);
+		const reviewTriggerHandler = createReviewTriggerHandler(dbOps);
+		const _reviewResponseHandler = createReviewResponseHandler(dbOps);
 
 		// Register routes
 		this.handlers.set("GET:/health", () => healthHandler());
@@ -126,6 +168,15 @@ export class APIRouter {
 		this.handlers.set("GET:/api/analytics", (_req, url) => {
 			return analyticsHandler(url.searchParams);
 		});
+		this.handlers.set("GET:/api/bandwidth", () =>
+			bandwidthHandler.getAllBandwidth(),
+		);
+		this.handlers.set("GET:/api/bandwidth/summary", () =>
+			bandwidthHandler.getBandwidthSummary(),
+		);
+		this.handlers.set("GET:/api/claude/usage", () =>
+			handleClaudeUsage(db as Database),
+		);
 		this.handlers.set("GET:/api/agents", () => agentsHandler());
 		this.handlers.set("POST:/api/agents/bulk-preference", (req) => {
 			const bulkHandler = createBulkAgentPreferenceUpdateHandler(
@@ -134,19 +185,76 @@ export class APIRouter {
 			return bulkHandler(req);
 		});
 		this.handlers.set("GET:/api/workspaces", () => workspacesHandler());
+
+		// Feedback system routes - basic endpoints
+		this.handlers.set("GET:/api/projects", () => projectsListHandler());
+		this.handlers.set("POST:/api/feedback", (req) =>
+			feedbackSubmissionHandler(req),
+		);
+		this.handlers.set("GET:/api/feedback/summary", (_req, url) =>
+			feedbackSummaryHandler(_req, url),
+		);
+		this.handlers.set("GET:/api/agents/versions", (_req, url) =>
+			agentVersionsListHandler(_req, url),
+		);
+		this.handlers.set("POST:/api/agents/versions", (req) =>
+			agentVersionCreateHandler(req),
+		);
+		this.handlers.set("GET:/api/reviews", (_req, url) =>
+			performanceReviewsListHandler(_req, url),
+		);
+		this.handlers.set("POST:/api/reviews/trigger", (req) =>
+			reviewTriggerHandler(req),
+		);
 	}
 
 	/**
-	 * Wrap a handler with error handling
+	 * Wrap a handler with error handling and CORS headers
 	 */
 	private wrapHandler(
 		handler: (req: Request, url: URL) => Response | Promise<Response>,
 	): (req: Request, url: URL) => Promise<Response> {
 		return async (req: Request, url: URL) => {
 			try {
-				return await handler(req, url);
+				const response = await handler(req, url);
+
+				// Add CORS headers
+				const corsHeaders = new Headers(response.headers);
+				corsHeaders.set("Access-Control-Allow-Origin", "*");
+				corsHeaders.set(
+					"Access-Control-Allow-Methods",
+					"GET, POST, PUT, DELETE, OPTIONS",
+				);
+				corsHeaders.set(
+					"Access-Control-Allow-Headers",
+					"Content-Type, Authorization",
+				);
+
+				return new Response(response.body, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: corsHeaders,
+				});
 			} catch (error) {
-				return errorResponse(error);
+				const errorResp = errorResponse(error);
+
+				// Add CORS headers to error responses too
+				const corsHeaders = new Headers(errorResp.headers);
+				corsHeaders.set("Access-Control-Allow-Origin", "*");
+				corsHeaders.set(
+					"Access-Control-Allow-Methods",
+					"GET, POST, PUT, DELETE, OPTIONS",
+				);
+				corsHeaders.set(
+					"Access-Control-Allow-Headers",
+					"Content-Type, Authorization",
+				);
+
+				return new Response(errorResp.body, {
+					status: errorResp.status,
+					statusText: errorResp.statusText,
+					headers: corsHeaders,
+				});
 			}
 		};
 	}
@@ -158,6 +266,19 @@ export class APIRouter {
 		const path = url.pathname;
 		const method = req.method;
 		const key = `${method}:${path}`;
+
+		// Handle CORS preflight requests
+		if (method === "OPTIONS") {
+			return new Response(null, {
+				status: 200,
+				headers: {
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+					"Access-Control-Max-Age": "86400",
+				},
+			});
+		}
 
 		// Check for exact match
 		const handler = this.handlers.get(key);
@@ -216,6 +337,25 @@ export class APIRouter {
 			}
 		}
 
+		// Check for dynamic bandwidth endpoints
+		if (
+			path.startsWith("/api/bandwidth/") &&
+			path !== "/api/bandwidth/summary"
+		) {
+			const parts = path.split("/");
+			const accountId = parts[3];
+
+			// Individual account bandwidth
+			if (parts.length === 4 && method === "GET") {
+				const dynamicBandwidthHandler = createBandwidthHandler(
+					this.context.db as Database,
+				);
+				return await this.wrapHandler((req) =>
+					dynamicBandwidthHandler.getBandwidth(req, accountId),
+				)(req, url);
+			}
+		}
+
 		// Check for dynamic agent endpoints
 		if (path.startsWith("/api/agents/")) {
 			const parts = path.split("/");
@@ -236,6 +376,80 @@ export class APIRouter {
 			if (parts.length === 4 && method === "PATCH") {
 				const updateHandler = createAgentUpdateHandler(this.context.dbOps);
 				return await this.wrapHandler((req) => updateHandler(req, agentId))(
+					req,
+					url,
+				);
+			}
+		}
+
+		// Check for dynamic project endpoints
+		if (path.startsWith("/api/projects/")) {
+			const parts = path.split("/");
+			const _projectId = parts[3];
+
+			// Project detail (GET /api/projects/:id)
+			if (parts.length === 4 && method === "GET") {
+				const handler = createProjectDetailHandler(this.context.db as Database);
+				return await this.wrapHandler((_req, url) => handler(_req, url))(
+					req,
+					url,
+				);
+			}
+
+			// Project feedback (POST /api/projects/:id/feedback)
+			if (path.endsWith("/feedback") && method === "POST") {
+				const handler = createProjectFeedbackHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
+					req,
+					url,
+				);
+			}
+
+			// Project sessions (GET /api/projects/:id/sessions)
+			if (path.endsWith("/sessions") && method === "GET") {
+				const handler = createProjectSessionsHandler(
+					this.context.db as Database,
+				);
+				return await this.wrapHandler((_req, url) => handler(_req, url))(
+					req,
+					url,
+				);
+			}
+		}
+
+		// Check for dynamic agent version endpoints
+		if (path.startsWith("/api/agents/versions/")) {
+			const parts = path.split("/");
+			const _versionId = parts[4];
+
+			// Version update (PUT /api/agents/versions/:id)
+			if (parts.length === 5 && method === "PUT") {
+				const handler = createAgentVersionUpdateHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
+					req,
+					url,
+				);
+			}
+
+			// Version rollback (DELETE /api/agents/versions/:id)
+			if (parts.length === 5 && method === "DELETE") {
+				const handler = createAgentVersionRollbackHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
+					req,
+					url,
+				);
+			}
+		}
+
+		// Check for dynamic review endpoints
+		if (path.startsWith("/api/reviews/")) {
+			const parts = path.split("/");
+			const _reviewId = parts[3];
+
+			// Review response (PUT /api/reviews/:id/response)
+			if (path.endsWith("/response") && method === "PUT") {
+				const handler = createReviewResponseHandler(this.context.dbOps);
+				return await this.wrapHandler((req, url) => handler(req, url))(
 					req,
 					url,
 				);

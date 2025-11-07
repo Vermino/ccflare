@@ -15,6 +15,19 @@ export interface Account {
 	rateLimitReset: string | null;
 	rateLimitRemaining: number | null;
 	sessionInfo: string | null;
+	// Detailed Anthropic rate limit tracking
+	requests_limit: number | null;
+	requests_remaining: number | null;
+	requests_reset: number | null;
+	tokens_limit: number | null;
+	tokens_remaining: number | null;
+	tokens_reset: number | null;
+	input_tokens_limit: number | null;
+	input_tokens_remaining: number | null;
+	input_tokens_reset: number | null;
+	output_tokens_limit: number | null;
+	output_tokens_remaining: number | null;
+	output_tokens_reset: number | null;
 }
 
 export interface Stats {
@@ -84,8 +97,40 @@ export interface RequestSummary {
 	outputTokens?: number;
 }
 
+export interface Project {
+	id: number;
+	name: string;
+	path: string;
+	claude_file_path: string;
+	created_at: string;
+	last_activity: string;
+	total_sessions: number;
+	avg_satisfaction: number;
+}
+
+export interface ProjectSession {
+	id: number;
+	project_id: number;
+	user_id: string;
+	agent_type: string;
+	agent_version: string;
+	session_start: string;
+	session_end: string;
+	request_count: number;
+	tools_used: string[];
+	task_description: string;
+	success_rating: number;
+	completion_time_ms: number;
+	error_count: number;
+}
+
+export interface ProjectDetails {
+	project: Project;
+	sessions: ProjectSession[];
+}
+
 class API {
-	private baseUrl = "";
+	private baseUrl = "http://localhost:8081";
 
 	async getStats(): Promise<Stats> {
 		const res = await fetch(`${this.baseUrl}/api/stats`);
@@ -99,11 +144,17 @@ class API {
 		return res.json() as Promise<Account[]>;
 	}
 
+	async getAgents(): Promise<any> {
+		const res = await fetch(`${this.baseUrl}/api/agents`);
+		if (!res.ok) throw new Error("Failed to fetch agents");
+		return res.json();
+	}
+
 	async initAddAccount(data: {
 		name: string;
 		mode: "max" | "console";
 		tier: number;
-	}): Promise<{ authUrl: string }> {
+	}): Promise<{ authUrl: string; sessionId: string }> {
 		const res = await fetch(`${this.baseUrl}/api/accounts`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -113,17 +164,22 @@ class API {
 			const error = (await res.json()) as { error?: string };
 			throw new Error(error.error || "Failed to initialize account");
 		}
-		return res.json() as Promise<{ authUrl: string }>;
+		const result = (await res.json()) as { authUrl: string };
+		return { authUrl: result.authUrl, sessionId: data.name };
 	}
 
 	async completeAddAccount(data: {
-		name: string;
+		sessionId: string;
 		code: string;
 	}): Promise<{ message: string; mode: string; tier: number }> {
 		const res = await fetch(`${this.baseUrl}/api/accounts`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ ...data, step: "callback" }),
+			body: JSON.stringify({
+				name: data.sessionId,
+				code: data.code,
+				step: "callback",
+			}),
 		});
 		if (!res.ok) {
 			const error = (await res.json()) as { error?: string };
@@ -269,6 +325,33 @@ class API {
 			const error = (await res.json()) as { error?: string };
 			throw new Error(error.error || "Failed to set strategy");
 		}
+	}
+
+	async getProjects(): Promise<Project[]> {
+		const res = await fetch(`${this.baseUrl}/api/projects`);
+		if (!res.ok) throw new Error("Failed to fetch projects");
+		return res.json() as Promise<Project[]>;
+	}
+
+	async getProjectDetails(projectId: number): Promise<ProjectDetails> {
+		const res = await fetch(`${this.baseUrl}/api/projects/${projectId}`);
+		if (!res.ok) throw new Error("Failed to fetch project details");
+		return res.json() as Promise<ProjectDetails>;
+	}
+
+	async getProjectSessions(projectId: number): Promise<ProjectSession[]> {
+		const res = await fetch(
+			`${this.baseUrl}/api/projects/${projectId}/sessions`,
+		);
+		if (!res.ok) throw new Error("Failed to fetch project sessions");
+		return res.json() as Promise<ProjectSession[]>;
+	}
+
+	async getAllBandwidth(): Promise<any[]> {
+		const res = await fetch(`${this.baseUrl}/api/bandwidth`);
+		if (!res.ok) throw new Error("Failed to fetch bandwidth data");
+		const data = (await res.json()) as { success: boolean; data: any[] };
+		return data.data;
 	}
 }
 
