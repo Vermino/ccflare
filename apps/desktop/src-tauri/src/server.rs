@@ -39,7 +39,7 @@ impl ServerInfo {
             uptime: None,
         }
     }
-    
+
     pub fn url(&self) -> String {
         format!("http://{}:{}", self.config.host, self.config.port)
     }

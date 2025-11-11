@@ -5,18 +5,16 @@
 
 use serde::{Deserialize, Serialize};
 use std::process::{Command, Stdio};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{command, generate_handler, Builder, Manager, State, WindowEvent};
 use tokio::sync::Mutex;
 
-
-// Server process management  
+// Server process management
 #[derive(Clone)]
 struct ServerState {
     process: Arc<Mutex<Option<std::process::Child>>>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ServerStatus {
@@ -25,11 +23,10 @@ struct ServerStatus {
     pid: Option<u32>,
 }
 
-
 #[command]
 async fn start_server(state: State<'_, ServerState>) -> Result<ServerStatus, String> {
     let mut process_guard = state.process.lock().await;
-    
+
     // Check if server is already running
     if let Some(ref mut child) = process_guard.as_mut() {
         match child.try_wait() {
@@ -59,18 +56,18 @@ async fn start_server(state: State<'_, ServerState>) -> Result<ServerStatus, Str
 
     // Start new server process - use bun to run the server
     let mut cmd = Command::new("bun");
-    
+
     // Get the project root directory (5 levels up from the executable)
     let project_root = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // target/debug
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // target
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // src-tauri
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // desktop
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // apps
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // ccflare root
+        .and_then(|p| p.parent().map(|p| p.to_path_buf())) // target/debug
+        .and_then(|p| p.parent().map(|p| p.to_path_buf())) // target
+        .and_then(|p| p.parent().map(|p| p.to_path_buf())) // src-tauri
+        .and_then(|p| p.parent().map(|p| p.to_path_buf())) // desktop
+        .and_then(|p| p.parent().map(|p| p.to_path_buf())) // apps
+        .and_then(|p| p.parent().map(|p| p.to_path_buf())) // ccflare root
         .unwrap_or_else(|| std::path::PathBuf::from("."));
-    
+
     cmd.args(&["run", "server"])
         .current_dir(&project_root)
         .stdout(Stdio::piped())
@@ -88,7 +85,7 @@ async fn start_server(state: State<'_, ServerState>) -> Result<ServerStatus, Str
         Ok(child) => {
             let pid = child.id();
             *process_guard = Some(child);
-            
+
             Ok(ServerStatus {
                 running: true,
                 port: 8081,
@@ -102,10 +99,10 @@ async fn start_server(state: State<'_, ServerState>) -> Result<ServerStatus, Str
 #[command]
 async fn stop_server(state: State<'_, ServerState>) -> Result<ServerStatus, String> {
     let mut process_guard = state.process.lock().await;
-    
+
     // Remove environment variable when manually stopping the server
     remove_anthropic_env_var();
-    
+
     if let Some(mut child) = process_guard.take() {
         match child.kill() {
             Ok(_) => {
@@ -130,7 +127,7 @@ async fn stop_server(state: State<'_, ServerState>) -> Result<ServerStatus, Stri
 #[command]
 async fn get_server_status(state: State<'_, ServerState>) -> Result<ServerStatus, String> {
     let mut process_guard = state.process.lock().await;
-    
+
     if let Some(ref mut child) = process_guard.as_mut() {
         match child.try_wait() {
             Ok(Some(_)) => {
@@ -180,7 +177,7 @@ async fn exit_app(state: State<'_, ServerState>) -> Result<(), String> {
 fn set_anthropic_env_var() {
     println!("🔧 Setting ANTHROPIC_BASE_URL=http://localhost:8081");
     std::env::set_var("ANTHROPIC_BASE_URL", "http://localhost:8081");
-    
+
     // Also set it system-wide on Windows
     #[cfg(target_os = "windows")]
     {
@@ -188,7 +185,7 @@ fn set_anthropic_env_var() {
         let result = Command::new("setx")
             .args(&["ANTHROPIC_BASE_URL", "http://localhost:8081"])
             .output();
-        
+
         match result {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
@@ -216,15 +213,21 @@ fn set_anthropic_env_var() {
 fn remove_anthropic_env_var() {
     println!("🧹 Removing ANTHROPIC_BASE_URL environment variable");
     std::env::remove_var("ANTHROPIC_BASE_URL");
-    
+
     // Also remove it system-wide on Windows
     #[cfg(target_os = "windows")]
     {
         println!("🧹 Removing system-wide environment variable...");
         let result = Command::new("reg")
-            .args(&["delete", "HKCU\\Environment", "/v", "ANTHROPIC_BASE_URL", "/f"])
+            .args(&[
+                "delete",
+                "HKCU\\Environment",
+                "/v",
+                "ANTHROPIC_BASE_URL",
+                "/f",
+            ])
             .output();
-        
+
         match result {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
@@ -248,12 +251,12 @@ fn remove_anthropic_env_var() {
 
 async fn cleanup_server(state: ServerState) {
     let mut process_guard = state.process.lock().await;
-    
+
     println!("🛑 Stopping ccflare server...");
-    
+
     // Remove environment variable first
     remove_anthropic_env_var();
-    
+
     // First try to kill the tracked process
     if let Some(mut child) = process_guard.take() {
         match child.kill() {
@@ -266,14 +269,14 @@ async fn cleanup_server(state: ServerState) {
             }
         }
     }
-    
+
     // Also try to kill any process using port 8081 (Windows-specific)
     #[cfg(target_os = "windows")]
     {
         let output = Command::new("cmd")
             .args(&["/C", "netstat -ano | findstr :8081"])
             .output();
-            
+
         if let Ok(output) = output {
             let output_str = String::from_utf8_lossy(&output.stdout);
             for line in output_str.lines() {
@@ -281,11 +284,14 @@ async fn cleanup_server(state: ServerState) {
                     // Extract PID from the line (last column)
                     if let Some(pid_str) = line.split_whitespace().last() {
                         if let Ok(pid) = pid_str.parse::<u32>() {
-                            println!("🔍 Found process {} using port 8081, attempting to kill...", pid);
+                            println!(
+                                "🔍 Found process {} using port 8081, attempting to kill...",
+                                pid
+                            );
                             let kill_result = Command::new("taskkill")
                                 .args(&["/PID", &pid.to_string(), "/F"])
                                 .output();
-                            
+
                             match kill_result {
                                 Ok(_) => println!("✅ Killed process {} on port 8081", pid),
                                 Err(e) => eprintln!("⚠️ Failed to kill process {}: {}", pid, e),
@@ -296,20 +302,18 @@ async fn cleanup_server(state: ServerState) {
             }
         }
     }
-    
+
     // For other platforms, try to find and kill node/bun processes
     #[cfg(not(target_os = "windows"))]
     {
-        let _ = Command::new("pkill")
-            .args(&["-f", "bun.*ccflare"])
-            .output();
+        let _ = Command::new("pkill").args(&["-f", "bun.*ccflare"]).output();
         println!("✅ Attempted to kill ccflare processes");
     }
 }
 
 async fn auto_start_server(state: ServerState) -> Result<(), String> {
     let mut process_guard = state.process.lock().await;
-    
+
     // Check if server is already running
     if let Some(ref mut child) = process_guard.as_mut() {
         match child.try_wait() {
@@ -334,21 +338,62 @@ async fn auto_start_server(state: ServerState) -> Result<(), String> {
     // Set the environment variable before starting the server
     set_anthropic_env_var();
 
-    // Start new server process - use bun to run the server
+    // Get the project root directory
+    let exe_path =
+        std::env::current_exe().map_err(|e| format!("Failed to get executable path: {}", e))?;
+
+    println!("🔍 Executable path: {:?}", exe_path);
+
+    let project_root = exe_path
+        .parent() // release
+        .and_then(|p| p.parent()) // target
+        .and_then(|p| p.parent()) // src-tauri
+        .and_then(|p| p.parent()) // desktop
+        .and_then(|p| p.parent()) // apps
+        .and_then(|p| p.parent()) // ccflare root
+        .ok_or_else(|| "Failed to determine project root directory".to_string())?;
+
+    println!("🔍 Project root: {:?}", project_root);
+
+    // Check if bun exists
+    let bun_check = Command::new("bun").arg("--version").output();
+
+    match bun_check {
+        Ok(output) if output.status.success() => {
+            let version = String::from_utf8_lossy(&output.stdout);
+            println!("✅ Found bun version: {}", version.trim());
+        }
+        _ => {
+            let error_msg = "❌ Bun not found in PATH! Please install bun from https://bun.sh or add it to your PATH";
+            eprintln!("{}", error_msg);
+            return Err(error_msg.to_string());
+        }
+    }
+
+    // Verify project root exists
+    if !project_root.exists() {
+        let error_msg = format!("❌ Project root does not exist: {:?}", project_root);
+        eprintln!("{}", error_msg);
+        return Err(error_msg);
+    }
+
+    // Verify server entry point exists
+    let server_path = project_root
+        .join("apps")
+        .join("server")
+        .join("src")
+        .join("server.ts");
+    if !server_path.exists() {
+        let error_msg = format!("❌ Server file not found at: {:?}", server_path);
+        eprintln!("{}", error_msg);
+        return Err(error_msg);
+    }
+
+    println!("✅ Server file found at: {:?}", server_path);
+
+    // Start new server process
     let mut cmd = Command::new("bun");
-    
-    // Get the project root directory (5 levels up from the executable)
-    let project_root = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // target/debug
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // target
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // src-tauri
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // desktop
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // apps
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))  // ccflare root
-        .unwrap_or_else(|| std::path::PathBuf::from("."));
-    
-    cmd.args(&["run", "server"])
+    cmd.args(&["run", "start"])
         .current_dir(&project_root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -361,20 +406,25 @@ async fn auto_start_server(state: ServerState) -> Result<(), String> {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
+    println!("🚀 Starting server with command: bun run start");
+    println!("📁 Working directory: {:?}", project_root);
+
     match cmd.spawn() {
         Ok(child) => {
-            println!("✅ ccflare server started automatically (PID: {})", child.id());
+            println!(
+                "✅ ccflare server started automatically (PID: {})",
+                child.id()
+            );
             *process_guard = Some(child);
             Ok(())
         }
         Err(e) => {
-            eprintln!("❌ Failed to start server: {}", e);
-            Err(format!("Failed to start server: {}", e))
+            let error_msg = format!("❌ Failed to spawn server process: {}", e);
+            eprintln!("{}", error_msg);
+            Err(error_msg)
         }
     }
 }
-
-
 
 fn main() {
     Builder::default()
@@ -390,11 +440,11 @@ fn main() {
         ])
         .setup(move |app| {
             println!("🚀 ccflare Desktop started - ANTHROPIC_BASE_URL will be automatically set to http://localhost:8081");
-            
+
             // Auto-start the ccflare server when the desktop app launches
             let state = app.state::<ServerState>();
             let state_clone = state.inner().clone();
-            
+
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = auto_start_server(state_clone).await {
                     eprintln!("Failed to auto-start server: {}", e);
@@ -404,7 +454,7 @@ fn main() {
             // Set up cleanup on window close and app exit
             let state_for_cleanup = app.state::<ServerState>();
             let cleanup_state = state_for_cleanup.inner().clone();
-            
+
             // Register cleanup for window close event
             if let Some(main_window) = app.get_webview_window("main") {
                 let cleanup_state_window = cleanup_state.clone();
@@ -449,7 +499,7 @@ fn main() {
 
             // The window close event should be sufficient for cleanup
             // If it doesn't work, we'll also add an explicit exit command
-            
+
             Ok(())
         })
         .run(tauri::generate_context!())
